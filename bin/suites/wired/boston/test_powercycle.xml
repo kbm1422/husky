@@ -1,0 +1,62 @@
+<TestSuite name="Power Cycle Test Suite">
+    <TestSuite name="Power Cycle Sink Test Suite">
+        <For list="range(3)" type="expression" param="tx_port_number">
+            <For list="range(100)" type="expression">
+                <TestCase name="power cycle tv %(tx_port_number)s with RX0" class="cases.wired.boston.test_powercycle.PowerCycleTestCase" method="test_powercycle_sink">
+                    <Attribute name="device" value="%(device)s"/>
+                    <Attribute name="sink" value="TestContextManager.current_context().resource.avconsumers[%(tx_port_number)s]" />
+                    <Attribute name="listen_keyword" value="TX%(tx_port_number)s AVMUTE=0" />
+                    <Attribute name="rx_port" value="SII9777_RX_PORT__0" />
+                </TestCase>
+            </For>
+            <For list="range(100)" type="expression">
+                <TestCase name="power cycle tv %(tx_port_number)s with RX1" class="cases.wired.boston.test_powercycle.PowerCycleTestCase" method="test_powercycle_sink">
+                    <Attribute name="device" value="%(device)s"/>
+                    <Attribute name="sink" value="TestContextManager.current_context().resource.avconsumers[%(tx_port_number)s]" />
+                    <Attribute name="listen_keyword" value="TX%(tx_port_number)s AVMUTE=0" />
+                    <Attribute name="rx_port" value="SII9777_RX_PORT__1" />
+                </TestCase>
+            </For>
+            <For list="range(100)" type="expression">
+                <TestCase name="power cycle tv %(tx_port_number)s with RX2" class="cases.wired.boston.test_powercycle.PowerCycleTestCase" method="test_powercycle_sink">
+                    <Attribute name="device" value="%(device)s"/>
+                    <Attribute name="sink" value="TestContextManager.current_context().resource.avconsumers[%(tx_port_number)s]" />
+                    <Attribute name="listen_keyword" value="TX%(tx_port_number)s AVMUTE=0" />
+                    <Attribute name="rx_port" value="SII9777_RX_PORT__2" />
+                </TestCase>
+            </For>
+            <For list="range(100)" type="expression">
+                <TestCase name="power cycle tv %(tx_port_number)s with RX3" class="cases.wired.boston.test_powercycle.PowerCycleTestCase" method="test_powercycle_sink">
+                    <Attribute name="device" value="%(device)s"/>
+                    <Attribute name="sink" value="TestContextManager.current_context().resource.avconsumers[%(tx_port_number)s]" />
+                    <Attribute name="listen_keyword" value="TX%(tx_port_number)s AVMUTE=0" />
+                    <Attribute name="rx_port" value="SII9777_RX_PORT__3" />
+                </TestCase>
+            </For>
+        </For>
+
+    </TestSuite>
+
+    <TestSuite name="Power Cycle Source Test Suite">
+        <For list="[0,1,2, 3]" type="expression" param="rx_port_number">
+            <For list="range(100)" type="expression">
+                <TestCase name="power cycle source %(rx_port_number)s" class="cases.wired.boston.test_powercycle.PowerCycleTestCase" method="test_powercycle_source">
+                    <Attribute name="device" value="%(device)s"/>
+                    <Attribute name="source" value="TestContextManager.current_context().resource.avproducers[%(rx_port_number)s]"/>
+                    <Attribute name="rx_port" value="SII9777_RX_PORT__%(rx_port_number)s" />
+                </TestCase>
+            </For>
+        </For>
+    </TestSuite>
+
+    <TestSuite name="Power Cycle Device Test Suite">
+        <For list="[0,1,2, 3]" type="expression" param="rx_port_number">
+            <For list="range(100)" type="expression" >
+                <TestCase name="power cycle boston chip with RX%(rx_port_number)s" class="cases.wired.boston.test_powercycle.PowerCycleTestCase" method="test_powercycle_device">
+                    <Attribute name="device" value="%(device)s"/>
+                    <Attribute name="rx_port" value="SII9777_RX_PORT__%(rx_port_number)s" />
+                </TestCase>
+            </For>
+        </For>
+    </TestSuite>
+</TestSuite>

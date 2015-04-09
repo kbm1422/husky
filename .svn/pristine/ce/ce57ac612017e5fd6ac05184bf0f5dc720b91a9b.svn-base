@@ -1,0 +1,28 @@
+<TestSuite name="Msc Test Suite">
+    <For list= "range(20)" type="expression">
+        <TestCase name="test_msc_rcp" class="cases.common.test_msc.MscTestCase" method="test_msc_rcp">
+            <Attribute name="device_wolverine" value="%(device_wolverine)s"/>
+            <Attribute name="device_receiver" value="%(device_receiver)s"/>
+            <Attribute name="listen_timeout" value="3.0"/>
+
+        </TestCase>
+          <TestCase name="test_msc_rap" class="cases.common.test_msc.MscTestCase" method="test_msc_rap">
+            <Attribute name="device_wolverine" value="%(device_wolverine)s"/>
+            <Attribute name="device_receiver" value="%(device_receiver)s"/>
+            <Attribute name="listen_timeout" value="3.0"/>
+         </TestCase>
+         <TestCase name="test_msc_ucp" class="cases.common.test_msc.MscTestCase" method="test_msc_ucp">
+            <Attribute name="device_wolverine" value="%(device_wolverine)s"/>
+            <Attribute name="device_receiver" value="%(device_receiver)s"/>
+            <Attribute name="listen_timeout" value="3.0"/>
+         </TestCase>
+        <TestCase name="test_msc_rcp_reserved" class="cases.common.test_msc.MscTestCase" method="test_msc_rcp_reserved">
+            <Attribute name="device_wolverine" value="%(device_wolverine)s"/>
+            <Attribute name="device_receiver" value="%(device_receiver)s"/>
+            <Attribute name="listen_timeout" value="3.0"/>
+         </TestCase>
+    </For>
+
+
+
+</TestSuite>

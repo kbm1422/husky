@@ -1,0 +1,43 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+try:
+    from configparser import ConfigParser
+except ImportError:
+    from ConfigParser import ConfigParser
+
+
+class Type(object):
+    TV = "TV"
+
+
+class AVConsumerFactory(object):
+    @classmethod
+    def new_avconsumer(cls, **kwargs):
+        avc_type = kwargs.pop("type").upper()
+        if avc_type == Type.TV:
+            return TV(**kwargs)
+        else:
+            raise BaseAVConsumer(**kwargs)
+
+
+class BaseAVConsumer(object):
+    def __init__(self, name, input=None, edid=None):
+        self.name = name
+        self.input = input
+        self.edid = edid
+
+
+class TV(BaseAVConsumer):
+    def __init__(self, *args, **kwargs):
+        super(TV, self).__init__(*args, **kwargs)
+        if self.edid is None and self.input is not None:
+            ini_name = os.path.join(os.path.dirname(os.path.abspath(__file__)), "edid.ini")
+            ini_parser = ConfigParser()
+            ini_parser.read(ini_name)
+            if ini_parser.has_option(self.name, self.input):
+                self.edid = ini_parser.get(self.name, self.input)

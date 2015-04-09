@@ -1,0 +1,172 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import random
+from ctypes import byref
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+from base import BaseBostonDriverTestCase
+
+
+CMS_COLOR_MAPPER = {
+    SII9777_CMS_COLOR__RED: "SII9777_CMS_COLOR__RED",
+    SII9777_CMS_COLOR__GREEN: "SII9777_CMS_COLOR__GREEN",
+    SII9777_CMS_COLOR__BLUE: "SII9777_CMS_COLOR__BLUE",
+    SII9777_CMS_COLOR__CYAN: "SII9777_CMS_COLOR__CYAN",
+    SII9777_CMS_COLOR__MAGENTA: "SII9777_CMS_COLOR__MAGENTA",
+    SII9777_CMS_COLOR__YELLOW: "SII9777_CMS_COLOR__YELLOW",
+    SII9777_CMS_COLOR__WHITE: "SII9777_CMS_COLOR__WHITE"
+}
+
+
+class CMSBypassSetTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        self.__is_bypass = bool_t()
+        with self.device.lock:
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(self.__is_bypass))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777CmsBypassSet(self.device.drv_instance, byref(self.__is_bypass))
+
+    def test_Sii9777CmsBypassEnable(self):
+        expect_is_bypass = bool_t(True)
+        with self.device.lock:
+            retcode = Sii9777CmsBypassSet(self.device.drv_instance, byref(expect_is_bypass))
+            self._test_api_retcode("Sii9777CmsBypassSet", retcode)
+        actual_is_bypass = bool_t()
+        with self.device.lock:
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(actual_is_bypass))
+        self.assertTrue(actual_is_bypass.value, "should be True")
+
+    def test_Sii9777CmsBypassDisable(self):
+        expect_is_bypass = bool_t(False)
+        with self.device.lock:
+            retcode = Sii9777CmsBypassSet(self.device.drv_instance, byref(expect_is_bypass))
+            self._test_api_retcode("Sii9777CmsBypassSet", retcode)
+        actual_is_bypass = bool_t()
+        with self.device.lock:
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(actual_is_bypass))
+        self.assertFalse(actual_is_bypass.value, "should be False")
+
+
+class CMSSaturationSetTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        with self.device.lock:
+            Sii9777CmsBypassSet(self.device.drv_instance, byref(bool_t(False)))
+            is_bypass = bool_t()
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(is_bypass))
+        if is_bypass.value is not False:
+            raise ValueError("CMS Bypass must be disable before testing")
+
+        self.__color = Sii9777CmsColor_t()
+        self.__saturation = int8_t()
+        with self.device.lock:
+            Sii9777CmsSaturationGet(self.device.drv_instance, self.__color, byref(self.__saturation))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777CmsSaturationSet(self.device.drv_instance, self.__color, byref(self.__saturation))
+
+    def _test_Sii9777CmsSaturationSet(self, value):
+        color = Sii9777CmsColor_t(random.choice(CMS_COLOR_MAPPER.keys()))
+        expect_saturation = int8_t(value)
+        with self.device.lock:
+            recode = Sii9777CmsSaturationSet(self.device.drv_instance, color, byref(expect_saturation))
+            self._test_api_retcode("Sii9777CmsSaturationSet", recode)
+
+        actual_saturation = int8_t()
+        with self.device.lock:
+            Sii9777CmsSaturationGet(self.device.drv_instance, color, byref(actual_saturation))
+        self.assertEquals(actual_saturation.value, expect_saturation.value,
+                          "Color %s's saturation should be %s" % (CMS_COLOR_MAPPER[color.value], value))
+
+    def test_Sii9777CmsSaturationSetMin(self):
+        self._test_Sii9777CmsSaturationSet(-100)
+
+    def test_Sii9777CmsSaturationSetMax(self):
+        self._test_Sii9777CmsSaturationSet(100)
+
+    def test_Sii9777CmsSaturationSetZero(self):
+        self._test_Sii9777CmsSaturationSet(0)
+
+
+class CMSHueSetTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        with self.device.lock:
+            Sii9777CmsBypassSet(self.device.drv_instance, byref(bool_t(False)))
+            is_bypass = bool_t()
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(is_bypass))
+        if is_bypass.value is not False:
+            raise ValueError("CMS Bypass must be disable before testing")
+
+        # setup
+        self.__clr = Sii9777CmsColor_t()
+        self.__hue = int8_t()
+        with self.device.lock:
+            Sii9777CmsHueGet(self.device.drv_instance, self.__clr, byref(self.__hue))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777CmsHueSet(self.device.drv_instance, self.__clr, byref(self.__hue))
+
+    def _test_Sii9777CmsHueSet(self, value):
+        color = Sii9777CmsColor_t(random.choice(CMS_COLOR_MAPPER.keys()))
+        expect_hue = int8_t(-100)
+        with self.device.lock:
+            recode = Sii9777CmsHueSet(self.device.drv_instance, color, byref(expect_hue))
+            self._test_api_retcode("Sii9777CmsHueSet", recode)
+        actual_hue = int8_t()
+        with self.device.lock:
+            Sii9777CmsHueGet(self.device.drv_instance, color, byref(actual_hue))
+        self.assertEquals(expect_hue.value, actual_hue.value,
+                          "Color %s 's hue should be %s" % (CMS_COLOR_MAPPER[color.value], value))
+
+    def test_Sii9777CmsHueSetMin(self):
+        self._test_Sii9777CmsHueSet(-100)
+
+    def test_Sii9777CmsHueSetMax(self):
+        self._test_Sii9777CmsHueSet(100)
+
+    def test_Sii9777CmsHueSetZero(self):
+        self._test_Sii9777CmsHueSet(0)
+
+
+class CMSWhitePointTempSetTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        with self.device.lock:
+            Sii9777CmsBypassSet(self.device.drv_instance, byref(bool_t(False)))
+            is_bypass = bool_t()
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(is_bypass))
+        if is_bypass.value is not False:
+            raise ValueError("CMS Bypass must be disable before testing")
+
+        # setup
+        self.__clr = Sii9777CmsColor_t()
+        self.__temperature = int16_t()
+        with self.device.lock:
+            Sii9777CmsWhitePointTempGet(self.device.drv_instance, self.__clr, byref(self.__temperature))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777CmsWhitePointTempSet(self.device.drv_instance, self.__clr, byref(self.__temperature))
+
+    def _test_Sii9777CmsWhitePointTempSet(self, value):
+        clr = Sii9777CmsColor_t(random.choice(CMS_COLOR_MAPPER.keys()))
+        expect_temperature = int16_t(value)
+        with self.device.lock:
+            recode = Sii9777CmsWhitePointTempSet(self.device.drv_instance, clr, byref(expect_temperature))
+            self._test_api_retcode("Sii9777CmsWhitePointTempSet", recode)
+        actual_temperature = int16_t()
+        with self.device.lock:
+            Sii9777CmsWhitePointTempGet(self.device.drv_instance, clr, byref(actual_temperature))
+        self.assertEquals(expect_temperature.value, actual_temperature.value,
+                          "Color %s 's temperature should be %s" % (CMS_COLOR_MAPPER[clr.value], value))
+
+    def test_Sii9777CmsWhitePointTempSetMin(self):
+        self._test_Sii9777CmsWhitePointTempSet(4000)
+
+    def test_Sii9777CmsWhitePointTempSetMax(self):
+        self._test_Sii9777CmsWhitePointTempSet(25000)

@@ -1,0 +1,230 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+import time
+from ctypes import byref
+
+from base import BaseBostonDriverTestCase
+from simg import fs
+from simg.test.framework import name, parametrize, TestContextManager, LinkedTestCase
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+
+
+
+PATTERNS = {
+    "SII9777_TPG_PATTERN__RED": SII9777_TPG_PATTERN__RED,
+    "SII9777_TPG_PATTERN__GREEN": SII9777_TPG_PATTERN__GREEN,
+    "SII9777_TPG_PATTERN__BLUE": SII9777_TPG_PATTERN__BLUE,
+    "SII9777_TPG_PATTERN__CYAN": SII9777_TPG_PATTERN__CYAN,
+    "SII9777_TPG_PATTERN__MAGENTA": SII9777_TPG_PATTERN__MAGENTA,
+    "SII9777_TPG_PATTERN__YELLOW": SII9777_TPG_PATTERN__YELLOW,
+    "SII9777_TPG_PATTERN__BLACK": SII9777_TPG_PATTERN__BLACK,
+    "SII9777_TPG_PATTERN__WHITE": SII9777_TPG_PATTERN__WHITE,
+    "SII9777_TPG_PATTERN__GRYSCL": SII9777_TPG_PATTERN__GRYSCL,
+    "SII9777_TPG_PATTERN__CHKBRD": SII9777_TPG_PATTERN__CHKBRD,
+    "SII9777_TPG_PATTERN__CLRBAR": SII9777_TPG_PATTERN__CLRBAR,
+    "SII9777_TPG_PATTERN__SPECIAL": SII9777_TPG_PATTERN__SPECIAL
+}
+
+VIDEO_RESOLUTIONS = {
+    "SII9777_VID_RES__NONE": SII9777_VID_RES__NONE,
+    "SII9777_VID_RES__UNKNOWN": SII9777_VID_RES__UNKNOWN,
+    "SII9777_VID_RES__VGA60": SII9777_VID_RES__VGA60,
+    "SII9777_VID_RES__480P": SII9777_VID_RES__480P,
+    "SII9777_VID_RES__720P60": SII9777_VID_RES__720P60,
+    "SII9777_VID_RES__1080I60": SII9777_VID_RES__1080I60,
+    "SII9777_VID_RES__480I2": SII9777_VID_RES__480I2,
+    "SII9777_VID_RES__240P2A": SII9777_VID_RES__240P2A,
+    "SII9777_VID_RES__240P2B": SII9777_VID_RES__240P2B,
+    "SII9777_VID_RES__480I4": SII9777_VID_RES__480I4,
+    "SII9777_VID_RES__240P4A": SII9777_VID_RES__240P4A,
+    "SII9777_VID_RES__240P4B": SII9777_VID_RES__240P4B,
+    "SII9777_VID_RES__480P2": SII9777_VID_RES__480P2,
+    "SII9777_VID_RES__1080P60": SII9777_VID_RES__1080P60,
+    "SII9777_VID_RES__576P": SII9777_VID_RES__576P,
+    "SII9777_VID_RES__720P50": SII9777_VID_RES__720P50,
+    "SII9777_VID_RES__1080I50": SII9777_VID_RES__1080I50,
+    "SII9777_VID_RES__576I2": SII9777_VID_RES__576I2,
+    "SII9777_VID_RES__288P2A": SII9777_VID_RES__288P2A,
+    "SII9777_VID_RES__288P2B": SII9777_VID_RES__288P2B,
+    "SII9777_VID_RES__288P2C": SII9777_VID_RES__288P2C,
+    "SII9777_VID_RES__576I4": SII9777_VID_RES__576I4,
+    "SII9777_VID_RES__288P4A": SII9777_VID_RES__288P4A,
+    "SII9777_VID_RES__288P4B": SII9777_VID_RES__288P4B,
+    "SII9777_VID_RES__288P4C": SII9777_VID_RES__288P4C,
+    "SII9777_VID_RES__576P2": SII9777_VID_RES__576P2,
+    "SII9777_VID_RES__1080P50": SII9777_VID_RES__1080P50,
+    "SII9777_VID_RES__1080P24": SII9777_VID_RES__1080P24,
+    "SII9777_VID_RES__1080P25": SII9777_VID_RES__1080P25,
+    "SII9777_VID_RES__1080P30": SII9777_VID_RES__1080P30,
+    "SII9777_VID_RES__480P4": SII9777_VID_RES__480P4,
+    "SII9777_VID_RES__576P4": SII9777_VID_RES__576P4,
+    "SII9777_VID_RES__1080I50A": SII9777_VID_RES__1080I50A,
+    "SII9777_VID_RES__1080I100": SII9777_VID_RES__1080I100,
+    "SII9777_VID_RES__720P100": SII9777_VID_RES__720P100,
+    "SII9777_VID_RES__576P100": SII9777_VID_RES__576P100,
+    "SII9777_VID_RES__576I100": SII9777_VID_RES__576I100,
+    "SII9777_VID_RES__1080I120": SII9777_VID_RES__1080I120,
+    "SII9777_VID_RES__720P120": SII9777_VID_RES__720P120,
+    "SII9777_VID_RES__480P120": SII9777_VID_RES__480P120,
+    "SII9777_VID_RES__480I120": SII9777_VID_RES__480I120,
+    "SII9777_VID_RES__576P200": SII9777_VID_RES__576P200,
+    "SII9777_VID_RES__576I200": SII9777_VID_RES__576I200,
+    "SII9777_VID_RES__480P240": SII9777_VID_RES__480P240,
+    "SII9777_VID_RES__480I240": SII9777_VID_RES__480I240,
+    "SII9777_VID_RES__720P24": SII9777_VID_RES__720P24,
+    "SII9777_VID_RES__720P25": SII9777_VID_RES__720P25,
+    "SII9777_VID_RES__720P30": SII9777_VID_RES__720P30,
+    "SII9777_VID_RES__1080P120": SII9777_VID_RES__1080P120,
+    "SII9777_VID_RES__1080P100": SII9777_VID_RES__1080P100,
+    "SII9777_VID_RES__4K2K30": SII9777_VID_RES__4K2K30,
+    "SII9777_VID_RES__4K2K25": SII9777_VID_RES__4K2K25,
+    "SII9777_VID_RES__4K2K24A": SII9777_VID_RES__4K2K24A,
+    "SII9777_VID_RES__4K2K24B": SII9777_VID_RES__4K2K24B,
+    "SII9777_VID_RES__1680X720P24": SII9777_VID_RES__1680X720P24,
+    "SII9777_VID_RES__1680X720P25": SII9777_VID_RES__1680X720P25,
+    "SII9777_VID_RES__1680X720P30": SII9777_VID_RES__1680X720P30,
+    "SII9777_VID_RES__1680X720P50": SII9777_VID_RES__1680X720P50,
+    "SII9777_VID_RES__1680X720P60": SII9777_VID_RES__1680X720P60,
+    "SII9777_VID_RES__1680X720P100": SII9777_VID_RES__1680X720P100,
+    "SII9777_VID_RES__1680X720P120": SII9777_VID_RES__1680X720P120,
+    "SII9777_VID_RES__2560X1080P24": SII9777_VID_RES__2560X1080P24,
+    "SII9777_VID_RES__2560X1080P25": SII9777_VID_RES__2560X1080P25,
+    "SII9777_VID_RES__2560X1080P30": SII9777_VID_RES__2560X1080P30,
+    "SII9777_VID_RES__2560X1080P50": SII9777_VID_RES__2560X1080P50,
+    "SII9777_VID_RES__2560X1080P60": SII9777_VID_RES__2560X1080P60,
+    "SII9777_VID_RES__2560X1080P100": SII9777_VID_RES__2560X1080P100,
+    "SII9777_VID_RES__2560X1080P120": SII9777_VID_RES__2560X1080P120,
+    "SII9777_VID_RES__2160P50": SII9777_VID_RES__2160P50,
+    "SII9777_VID_RES__2160P60": SII9777_VID_RES__2160P60
+}
+
+
+SUPPORTED_VIDEO_RESOLUTIONS = {
+    "SII9777_VID_RES__720P60": SII9777_VID_RES__720P60,
+    "SII9777_VID_RES__1080P60": SII9777_VID_RES__1080P60,
+    "SII9777_VID_RES__2160P60": SII9777_VID_RES__2160P60,
+}
+
+
+@name("Sii9777TpgEnableSet, Sii9777TpgEnableGet")
+class TPGEnableSetTestCase(LinkedTestCase, BaseBostonDriverTestCase):
+    methodNames = (
+        "test_golden_tpg_not_enabled",
+        "test_Sii9777TpgEnableSet_ON"
+    )
+
+    def setUp(self):
+        self.__is_enable = bool_t()
+        with self.device.lock:
+            Sii9777TpgEnableGet(self.device.drv_instance, byref(self.__is_enable))
+
+        context = TestContextManager.current_context()
+        resource = context.resource
+        self.webcam = resource.webcam
+        self.capture_image_dir = os.path.join(self.logdir, "images")
+        fs.mkpath(self.capture_image_dir)
+        self.capture_image_name = os.path.join(self.capture_image_dir, self.name+".jpg")
+
+    def tearDown(self):
+        with self.device.lock:
+            retcode = Sii9777TpgEnableSet(self.device.drv_instance, byref(bool_t(False)))
+        self._test_api_retcode("Sii9777TpgEnableSet", retcode)
+
+    def test_golden_tpg_not_enabled(self):
+        is_enable = bool_t()
+        with self.device.lock:
+            retcode = Sii9777TpgEnableGet(self.device.drv_instance, byref(is_enable))
+        self._test_api_retcode("Sii9777TpgEnableGet", retcode)
+        self.assertFalse(is_enable.value, "Default TPG enable should be False")
+
+    def test_Sii9777TpgEnableSet_ON(self):
+        expect_is_enable = bool_t(True)
+        with self.device.lock:
+            retcode = Sii9777TpgEnableSet(self.device.drv_instance, byref(expect_is_enable))
+        self._test_api_retcode("Sii9777TpgEnableSet", retcode)
+
+        actual_is_enable = bool_t()
+        with self.device.lock:
+            retcode = Sii9777TpgEnableGet(self.device.drv_instance, byref(actual_is_enable))
+        self._test_api_retcode("Sii9777TpgEnableGet", retcode)
+        self.assertTrue(actual_is_enable.value, "Get TPG enable should be True after setting")
+
+        time.sleep(10)
+        self.webcam.capture_image(self.capture_image_name)
+
+
+@name("%(pattern)s, %(vid_res)s")
+@parametrize("pattern", type=str, iteration=PATTERNS)
+@parametrize("vid_res", type=str, iteration=SUPPORTED_VIDEO_RESOLUTIONS)
+class TPGPatternVidResSetTestCase(LinkedTestCase, BaseBostonDriverTestCase):
+    methodNames = (
+        "test_Sii9777TpgPatternSet",
+        "test_Sii9777TpgVidResSet",
+    )
+
+    def setUp(self):
+        with self.device.lock:
+            retcode = Sii9777TpgEnableSet(self.device.drv_instance, byref(bool_t(True)))
+        self._test_api_retcode("Sii9777TpgEnableSet", retcode)
+
+        context = TestContextManager.current_context()
+        resource = context.resource
+        self.webcam = resource.webcam
+        self.capture_image_dir = os.path.join(self.logdir, "images")
+        fs.mkpath(self.capture_image_dir)
+        self.capture_image_name = os.path.join(self.capture_image_dir, self.name+".jpg")
+
+    def tearDown(self):
+        with self.device.lock:
+            retcode = Sii9777TpgEnableSet(self.device.drv_instance, byref(bool_t(False)))
+        self._test_api_retcode("Sii9777TpgEnableGet", retcode)
+
+    def _test_Sii9777TpgEnableSet(self, value):
+        expect_is_enable = bool_t(value)
+        with self.device.lock:
+            retcode = Sii9777TpgEnableSet(self.device.drv_instance, byref(expect_is_enable))
+        self._test_api_retcode("Sii9777TpgEnableSet", retcode)
+
+        actual_is_enable = bool_t()
+        with self.device.lock:
+            retcode = Sii9777TpgEnableGet(self.device.drv_instance, byref(actual_is_enable))
+        self._test_api_retcode("Sii9777TpgEnableGet", retcode)
+        self.assertEqual(actual_is_enable.value, value, "should be enable")
+
+    def test_Sii9777TpgPatternSet(self):
+        expect_pattern = Sii9777TpgPattern_t(PATTERNS[self.pattern])
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            retcode = Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self._test_api_retcode("Sii9777TpgPatternGet", retcode)
+        self.assertEquals(actual_pattern.value, expect_pattern.value,
+                          "TPG Pattern should be {0}".format(self.pattern))
+
+    def test_Sii9777TpgVidResSet(self):
+        expect_vid_res = Sii9777VidRes_t(SUPPORTED_VIDEO_RESOLUTIONS[self.vid_res])
+        with self.device.lock:
+            retcode = Sii9777TpgVidResSet(self.device.drv_instance, byref(expect_vid_res))
+        self._test_api_retcode("Sii9777TpgVidResSet", retcode)
+
+        actual_vid_res = Sii9777VidRes_t()
+        with self.device.lock:
+            retcode = Sii9777TpgVidResGet(self.device.drv_instance, byref(actual_vid_res))
+        self._test_api_retcode("Sii9777TpgVidResGet", retcode)
+        self.assertEquals(actual_vid_res.value, expect_vid_res.value,
+                          "TPG Video Resolution should be {0}".format(self.vid_res))
+        time.sleep(10)
+        self.webcam.capture_image(self.capture_image_name)
+
+
+__test_suite__ = {
+    "name": "Boston Driver Test Pattern Generator(TPG) Test Suite",
+}

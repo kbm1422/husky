@@ -1,0 +1,77 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import threading
+from Queue import Queue, Empty
+from abc import ABCMeta, abstractmethod
+
+
+class BaseListener(object):
+    def __init__(self, subject, keyword=None):
+        self.subject = subject
+        self.keyword = keyword
+        self.queue = Queue()
+
+    def get(self, block=True, timeout=None):
+        logger.debug("waiting for keyword '%s' with block=%s and timeout=%s in %s",
+                     self.keyword,
+                     block,
+                     timeout,
+                     self.subject)
+        try:
+            content = self.queue.get(block, timeout)
+            self.queue.task_done()
+            logger.debug("%s recv content '%s' from %s", self, content, self.subject)
+            return content
+        except Empty:
+            return None
+
+    def __repr__(self):
+        return "<%s '%s'>" % (self.__class__.__name__, self.keyword)
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __enter__(self):
+        logger.debug("%s ENTER ON %s", self, self.subject)
+        return self
+
+    def __exit__(self, *excinfo):
+        if excinfo != (None, None, None):
+            logger.exception("")
+        logger.debug("%s EXIT ON %s", self, self.subject)
+        self.subject.detach(self)
+
+
+class BaseSubject(object):
+    __metaclass__ = ABCMeta
+
+    Listener = BaseListener
+
+    def __init__(self):
+        self._listeners = []
+        self._lock = threading.Lock()
+
+    # def _notify(self, record):
+    #     with self._lock:
+    #         for listener in self._listeners:
+    #             listener.queue.put(record)
+
+    def listen(self, keyword=None):
+        listener = self.Listener(self, keyword)
+        self.attach(listener)
+        return listener
+
+    def attach(self, listener):
+        with self._lock:
+            self._listeners.append(listener)
+
+    def detach(self, listener):
+        with self._lock:
+            if listener in self._listeners:
+                self._listeners.remove(listener)
+
+

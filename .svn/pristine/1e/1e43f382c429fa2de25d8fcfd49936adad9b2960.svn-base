@@ -1,0 +1,6 @@
+<!-- MHL CBUS test cases common to sources, sinks and dongles -->
+<!-- Copyright (C) 2011 Simplay Labs-->
+<?xml version="1.0" encoding="utf-8"?>
+<CommonTest>
+ 	<TestCase ID="6.3.1.1" Name="6.3.1.1 CBM: Capability Regs" Tag="" Location=""/>
+</CommonTest>

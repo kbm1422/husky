@@ -1,0 +1,104 @@
+<!-- MHL CBUS test cases common to sources, sinks and dongles -->
+<!-- Copyright (C) 2011 Simplay Labs-->
+<?xml version="1.0" encoding="utf-8"?>
+<CommonTest>
+ 	<TestCase ID="6.3.1.1" Name="6.3.1.1 CBM: Capability Regs" Tag="" Location=""/>
+ 	<TestCase ID="6.3.3.1" Name="6.3.3.1 CBM: DUT sends (0x62) GET_STATE command" Tag="" Location=""/>
+ 	<TestCase ID="6.3.3.2" Name="6.3.3.2 CBM: DUT sends (0x63) GET_VENDOR_ID Command" Tag="" Location=""/>
+ 	<TestCase ID="6.3.3.3" Name="6.3.3.3 CBM: DUT sends (0x6B) GET_MSC_ERRCODE Command" Tag="" Location=""/>
+ 	<TestCase ID="6.3.3.4" Name="6.3.3.4 CBM: DUT sends (0x60) SET_INT/WRITE_STAT Command" Tag="" Location=""/>
+ 	<TestCase ID="6.3.3.5" Name="6.3.3.5 CBM: DUT sends (0x6C) WRITE_BURST Command" Tag="" Location=""/>
+ 	<TestCase ID="6.3.3.6" Name="6.3.3.6 CBM: DUT sends (0x68) MSC_MSG Command" Tag="" Location=""/>
+ 	<TestCase ID="6.3.3.7" Name="6.3.3.7 CBM: DUT sends (0x6A) GET_DDC_ERRCODE Command" Tag="" Location=""/>
+ 	<TestCase ID="6.3.4.1" Name="6.3.4.1 CBM: DUT Receives NACK to MSC_MSG" Tag="" Location=""/>
+ 	<TestCase ID="6.3.6.1" Name="6.3.6.1 CBM: DUT Receives Bad Reply; Control instead of Data" Tag="" Location=""/>
+ 	<TestCase ID="6.3.6.2" Name="6.3.6.2 CBM: DUT Receives Bad Reply; Data instead of Control" Tag="" Location=""/>
+ 	<TestCase ID="6.3.6.3" Name="6.3.6.3 CBM: DUT Receives Bad Reply; Control, Control instead of Control, Data" Tag="" Location=""/>
+ 	<TestCase ID="6.3.6.4" Name="6.3.6.4 CBM: DUT Receives Result Timeout" Tag="" Location=""/>
+ 	<TestCase ID="6.3.6.5" Name="6.3.6.5 CBM: Verify No Next Command Until Hold-Off after ABORT Seen" Tag="" Location=""/>
+ 	<TestCase ID="6.3.7.1" Name="6.3.7.1 CBM: DUT Receives Disconnect during Various Commands" Tag="" Location=""/>
+ 	<TestCase ID="6.3.8.1" Name="6.3.8.1 CBM: Interrupt Regs; SET_INT (0x60); Valid Registers Respond" Tag="" Location=""/>
+ 	<TestCase ID="6.3.8.2" Name="6.3.8.2 CBM: Status Regs; WRITE_STAT (0x60); Valid Registers Respond" Tag="" Location=""/>
+ 	<TestCase ID="6.3.9.1" Name="6.3.9.1 CBM: DUT Receives Vendor-specific and Reserved Header Values" Tag="" Location=""/>
+ 	<TestCase ID="6.3.10.1" Name="6.3.10.1 CBM: DUT receives (0x62) GET_STATE Command" Tag="" Location=""/>
+ 	<TestCase ID="6.3.10.2" Name="6.3.10.2 CBM: DUT receives (0x63) GET_VENDOR_ID Command" Tag="" Location=""/>
+ 	<TestCase ID="6.3.10.3" Name="6.3.10.3 CBM: DUT receives (0x61) READ_DEVCAP Command" Tag="" Location=""/>
+ 	<TestCase ID="6.3.10.4" Name="6.3.10.4 CBM: DUT Receives (0x6B) GET_MSC_ERRCODE Command (When No Err)" Tag="" Location=""/>
+ 	<TestCase ID="6.3.10.5" Name="6.3.10.5 CBM: DUT Receives (0x6B) GET_MSC_ERRCODE Command (When Err)" Tag="" Location=""/>
+	<TestCase ID="6.3.10.6" Name="6.3.10.6 CBM: DUT Receives (0x6C) WRITE_BURST Command - Supported" Tag="" Location=""/>
+ 	<TestCase ID="6.3.10.7" Name="6.3.10.7 CBM: DUT Receives (0x68) MSC_MSG Command-RCP_Support=1 &amp; RAP_Support=1" Tag="" Location=""/>
+	<TestCase ID="6.3.10.8" Name="6.3.10.8 CBM: DUT Receives (0x6A) GET_DDC_ERRCODE Command" Tag="" Location=""/>
+ 	<TestCase ID="6.3.11.1" Name="6.3.11.1 CBM: DUT Receives Reserved Commands" Tag="" Location=""/>
+	<TestCase ID="6.3.11.2" Name="6.3.11.2 CBM: DUT Receives Illegal Commands" Tag="" Location=""/>
+ 	<TestCase ID="6.3.11.3" Name="6.3.11.3 CBM: DUT Receives Data While No Command Outstanding" Tag="" Location=""/>
+	<TestCase ID="6.3.11.4" Name="6.3.11.4 CBM: DUT Receives (0x33) ACK Packet While No Command Outstanding" Tag="" Location=""/>
+ 	<TestCase ID="6.3.11.5" Name="6.3.11.5 CBM: DUT Receives (0x34) a NACK Packet While No Command Outstanding" Tag="" Location=""/>
+	<TestCase ID="6.3.11.6" Name="6.3.11.6 CBM: DUT Receives (0x32) EOF While No Command Outstanding" Tag="" Location=""/>
+ 	<TestCase ID="6.3.11.7" Name="6.3.11.7 CBM: DUT Receives (0x35) ABORT While No Command Outstanding" Tag="" Location=""/>
+	<TestCase ID="6.3.11.8" Name="6.3.11.8 CBM: DUT Receives (0x61) READ_DEVCAP - Offset Control" Tag="" Location=""/>
+ 	<TestCase ID="6.3.11.9" Name="6.3.11.9 CBM: DUT Receives (0x61) READ_DEVCAP - Offset Invalid" Tag="" Location=""/>
+	<TestCase ID="6.3.11.10" Name="6.3.11.10 CBM: DUT Receives (0x60) SET_INT - Offset Control" Tag="" Location=""/>
+ 	<TestCase ID="6.3.11.11" Name="6.3.11.11 CBM: DUT Receives (0x60) SET_INT - Data Control" Tag="" Location=""/>
+	<TestCase ID="6.3.11.12" Name="6.3.11.12 CBM: DUT Receives (0x60) WRITE_STAT - Data Control" Tag="" Location=""/>
+ 	<TestCase ID="6.3.11.13" Name="6.3.11.13 CBM: DUT Receives (0x6C) WRITE_BURST Command - Not Supported" Tag="" Location=""/>
+	<TestCase ID="6.3.11.14" Name="6.3.11.14 CBM: DUT Receives (0x6C) WRITE_BURST - Offset Control" Tag="" Location=""/>
+ 	<TestCase ID="6.3.11.15" Name="6.3.11.15 CBM: DUT Receives (0x6C) WRITE_BURST - Control Instead of First Data" Tag="" Location=""/>
+	<TestCase ID="6.3.11.16" Name="6.3.11.16 CBM: DUT Receives (0x6C) WRITE_BURST - Data 0 EOF" Tag="" Location=""/>
+ 	<TestCase ID="6.3.11.17" Name="6.3.11.17 CBM: DUT Receives (0x6C) WRITE_BURST - Data 1 Control" Tag="" Location=""/>
+	<TestCase ID="6.3.11.18" Name="6.3.11.18 CBM: DUT Receives (0x6C) WRITE_BURST - Data 1 EOF" Tag="" Location=""/>
+	<TestCase ID="6.3.11.19" Name="6.3.11.19 CBM: DUT Receives (0x6C) WRITE_BURST - Too Much Data" Tag="" Location=""/>
+	<TestCase ID="6.3.11.20" Name="6.3.11.20 CBM: DUT Receives (0x6C) WRITE_BURST - Offset Wrap ABORT" Tag="" Location=""/>
+	<TestCase ID="6.3.11.21" Name="6.3.11.21 CBM: DUT Receives (0x68) MSC_MSG Command-Both RCP_Support &amp; RAP_Support=0" Tag="" Location=""/>
+	<TestCase ID="6.3.11.22" Name="6.3.11.22 CBM: DUT Receives (0x68) MSC_MSG - Data 0 Control" Tag="" Location=""/>
+	<TestCase ID="6.3.11.23" Name="6.3.11.23 CBM: DUT Receives (0x68) MSC_MSG - Sub-command Illegal" Tag="" Location=""/>
+	<TestCase ID="6.3.11.24" Name="6.3.11.24 CBM: DUT Receives (0x68) MSC_MSG - Data 1 Control" Tag="" Location=""/>
+	<TestCase ID="6.3.12.1" Name="6.3.12.1 CBM: DUT Receives (0x61) READ_DEVCAP - Offset Timeout" Tag="" Location=""/>
+	<TestCase ID="6.3.12.2" Name="6.3.12.2 CBM: DUT Receives (0x60) SET_INT / WRITE_STAT - Offset Timeout" Tag="" Location=""/>
+	<TestCase ID="6.3.12.3" Name="6.3.12.3 CBM: DUT Receives (0x60) SET_INT - Data Timeout" Tag="" Location=""/>
+	<TestCase ID="6.3.12.4" Name="6.3.12.4 CBM: DUT Receives (0x60) WRITE_STAT - Data Timeout" Tag="" Location=""/>
+	<TestCase ID="6.3.12.5" Name="6.3.12.5 CBM: DUT Receives (0x6C) WRITE_BURST - Offset Timeout" Tag="" Location=""/>
+	<TestCase ID="6.3.12.6" Name="6.3.12.6 CBM: DUT Receives (0x6C) WRITE_BURST - Data 0 Timeout" Tag="" Location=""/>
+	<TestCase ID="6.3.12.7" Name="6.3.12.7 CBM: DUT Receives (0x6C) WRITE_BURST - EOF Timeout" Tag="" Location=""/>
+	<TestCase ID="6.3.12.8" Name="6.3.12.8 CBM: DUT Receives (0x68) MSC_MSG - Data 0 Timeout" Tag="" Location=""/>
+	<TestCase ID="6.3.12.9" Name="6.3.12.9 CBM: DUT Receives (0x68) MSC_MSG - Data 1 Timeout" Tag="" Location=""/>
+	<TestCase ID="6.3.14.1" Name="6.3.14.1 CBM-Source: Source DUT Receives (0x64) SET_HPD Command" Tag="" Location=""/>
+	<TestCase ID="6.3.14.2" Name="6.3.14.2 CBM-Source: Source DUT Receives (0x65) CLR_HPD Command" Tag="" Location=""/>
+	<TestCase ID="6.3.15.1" Name="6.3.15.1 CBM-Sink: Sink DUT Sends (0x64) SET_HPD Command" Tag="" Location=""/>
+	<TestCase ID="6.3.15.2" Name="6.3.15.2 CBM-Sink: Sink DUT Sends (0x65) CLR_HPD Command" Tag="" Location=""/>
+	<TestCase ID="6.3.16.1" Name="6.3.16.1 CBM-Sink: Sink DUT Receives (0x64) SET_HPD Command" Tag="" Location=""/>
+	<TestCase ID="6.3.16.2" Name="6.3.16.2 CBM-Sink: Sink DUT Receives (0x65) CLR_HPD Command" Tag="" Location=""/>
+	<TestCase ID="6.3.18.1" Name="6.3.18.1 CBM-Source: DUT Issues DDC Short Read and Current Read" Tag="" Location=""/>
+	<TestCase ID="6.3.18.2" Name="6.3.18.2 CBM-Source: DUT Issues Regular DDC Read" Tag="" Location=""/>
+	<TestCase ID="6.3.18.3" Name="6.3.18.3 CBM-Source: DUT Issues DDC Segment Read" Tag="" Location=""/>
+	<TestCase ID="6.3.18.4" Name="6.3.18.4 CBM-Source: DUT Issues DDC Write" Tag="" Location=""/>
+	<TestCase ID="6.3.19.1" Name="6.3.19.1 CBM-Source: DUT Issues Short Read and Current" Tag="" Location=""/>
+	<TestCase ID="6.3.19.2" Name="6.3.19.2 CBM-Source: DUT Issues Regular Read" Tag="" Location=""/>
+	<TestCase ID="6.3.19.3" Name="6.3.19.3 CBM-Source: DUT Issues Segment Read" Tag="" Location=""/>
+	<TestCase ID="6.3.19.4" Name="6.3.19.4 CBM-Source: DUT Issues Write" Tag="" Location=""/>
+	<TestCase ID="6.3.21.1" Name="6.3.21.1 CBM-Sink: DUT Receives DDC Write" Tag="" Location=""/>
+	<TestCase ID="6.3.21.2" Name="6.3.21.2 CBM-Sink: DUT Receives DDC Current Read" Tag="" Location=""/>
+	<TestCase ID="6.3.21.3" Name="6.3.21.3 CBM-Sink: DUT Receives regular DDC Read" Tag="" Location=""/>
+	<TestCase ID="6.3.21.4" Name="6.3.21.4 CBM-Sink: DUT Receives DDC Segment Read; Segment Register Implemented" Tag="" Location=""/>
+	<TestCase ID="6.3.21.5" Name="6.3.21.5 CBM-Sink: DUT NACKs DDC Segment Read; Segment Register Not Implemented" Tag="" Location=""/>
+	<TestCase ID="6.3.22.1" Name="6.3.22.1 CBM-Sink: DUT Receives SOF, CONT" Tag="" Location=""/>
+	<TestCase ID="6.3.22.2" Name="6.3.22.2 CBM-Sink: DUT Receives DDC Write; Various Errs" Tag="" Location=""/>
+	<TestCase ID="6.3.22.3" Name="6.3.22.3 CBM-Sink: DUT Receives DDC Short Read and Current Read; Various Errs" Tag="" Location=""/>
+	<TestCase ID="6.4.3.3" Name="6.4.3.3 Observe: DUT Does Not Send New MHL3 CBUS Commands to MHL 2 Tester" Tag="" Location=""/>
+	<TestCase ID="6.4.3.4" Name="6.4.3.4 Observe: DUT Sends New MHL3 CBUS Command(s) to MHL 3 Tester" Tag="" Location=""/>
+	<TestCase ID="6.4.3.5" Name="6.4.3.5 Observe: Source DUT Device Implement Heartbeat" Tag="" Location=""/>
+	<TestCase ID="6.4.3.6" Name="6.4.3.6 Observe: Source DUT Reads Extended Device Capability Registers after it gets DCAP_RDY or DCAP_CHG" Tag="" Location=""/>
+	<TestCase ID="6.4.3.7" Name="6.4.3.7 Observe: Source DUT Reads Extended Device Capability Registers after it gets DCAP_RDY or DCAP_CHG" Tag="" Location=""/>
+	<TestCase ID="6.4.4.1" Name="6.4.4.1 Observe: Source DUT Notices Failures of oCBUS to eCBUS Transition " Tag="" Location=""/>
+	<TestCase ID="6.4.4.2" Name="6.4.4.2 Observe: Sink DUT Notices Failures of oCBUS to eCBUS Transition " Tag="" Location=""/>
+	<TestCase ID="6.4.4.3" Name="6.4.4.3 Observe: Source Heart Beat Disconnect" Tag="" Location=""/>
+	<TestCase ID="6.4.5.1" Name="6.4.5.1 Observe: Source DUT Writes MHL_VERSION_STAT and DCAP_RDY and XDEVCAP_SUPP" Tag="" Location=""/>
+	<TestCase ID="6.4.5.2" Name="6.4.5.2 Observe: Source DUT Sends MSC_MSG RAP (CBUS_MODE_UP)" Tag="" Location=""/>
+	<TestCase ID="6.4.5.3" Name="6.4.5.3 Observe: Source DUT Attemptes eCBUS-S Connection" Tag="" Location=""/>
+	<TestCase ID="6.4.5.4" Name="6.4.5.4 Observe: Source DUT first Tries eCBUS-D and then eCBUS-S" Tag="" Location=""/>	
+	<TestCase ID="6.4.6.1" Name="6.4.6.1 Observe: Sink DUT writes MHL_VERSION_STAT and signals DCAP_RDY + XDEVCAP_SUPP" Tag="" Location=""/>	
+	<TestCase ID="6.4.6.2" Name="6.4.6.2 Observe: Sink DUT receives MSC_MSG_RAP{CBUS_MODE_UP}" Tag="" Location=""/>	
+	<TestCase ID="6.4.23.1" Name="6.4.23.1 Source receives RAPK{RESPONDER_BUSY} when it sends RAP{CBUS_MODE_UP}" Tag="" Location=""/>	
+	<TestCase ID="6.6.1.1" Name="6.6.1.1 CBT-Source: Discovery; Sink Never Drives MHL+/- HIGH" Tag="" Location=""/>
+	<TestCase ID="6.6.1.2" Name="6.6.1.2 CBT-Source: Remove MHL+/- Pull-up for More than Glitch Reject Time" Tag="" Location=""/>
+	<TestCase ID="6.6.1.20" Name="6.6.1.20 RxSense Impedance Test" Tag="" Location=""/>
+</CommonTest>

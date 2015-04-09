@@ -1,0 +1,162 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import unittest
+from ctypes import byref
+from base import BaseBostonDriverTestCase, AV_LINK_MAPPER
+from simg.test.framework import parametrize
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+
+
+class Plus5vQueryTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        self.__rx_port = Sii9777RxPort_t()
+        with self.device.lock:
+            retcode = Sii9777InputSelectGet(self.device.srv_instance, byref(self.__rx_port))
+        self._test_api_retcode("Sii9777InputSelectGet", retcode)
+
+    def test_Sii9777Plus5vQuery(self):
+        plus_5v = bool_t()
+        Sii9777Plus5vQuery(self.device.srv_instance, self.__rx_port, byref(plus_5v))
+
+
+class InputSelectTestCase(BaseBostonDriverTestCase):
+    @parametrize("rx_port", type=int, default=SII9777_RX_PORT__0)
+    def test_Sii9777InputSelect(self):
+        expect_rx_port = Sii9777RxPort_t(self.rx_port)
+        with self.device.lock:
+            retcode = Sii9777InputSelectSet(self.device.srv_instance, byref(expect_rx_port))
+        self._test_api_retcode("Sii9777InputSelectSet", retcode)
+
+        actual_rx_port = Sii9777RxPort_t()
+        with self.device.lock:
+            retcode = Sii9777InputSelectGet(self.device.srv_instance, byref(actual_rx_port))
+        self._test_api_retcode("Sii9777InputSelectGet", retcode)
+        self.assertEquals(actual_rx_port.value, expect_rx_port.value,
+                          msg="the input port should be %s" % expect_rx_port.value)
+
+
+class AvLinkQueryTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777AvLinkQuery(self):
+        actual_av_link = Sii9777AvLink_t()
+        with self.device.lock:
+            retcode = Sii9777AvLinkQuery(self.device.srv_instance, byref(actual_av_link))
+        self._test_api_retcode("Sii9777AvLinkQuery", retcode)
+        self.assertIn(actual_av_link.value, AV_LINK_MAPPER.keys(), "AV link should in %s" % AV_LINK_MAPPER.values())
+
+
+class HPDTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777HpdReplicateEnableSet(self):
+        pass
+
+    def test_Sii9777HpdReplicateEnableGet(self):
+        pass
+
+    def test_Sii9777HpdSet(self):
+        pass
+
+    def test_Sii9777HpdGet(self):
+        pass
+
+    def test_Sii9777HpdQuery(self):
+        pass
+
+
+@unittest.skip("don't know how to make the av muted or un-muted")
+class AvMuteQueryTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777AvMuteQuery(self):
+        is_av_muted = bool_t()
+        with self.device.lock:
+            Sii9777AvMuteQuery(self.device.drv_instance, byref(is_av_muted))
+        logger.debug("is_av_muted: %s", is_av_muted.value)
+
+
+class VideoTimingQueryTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777VideoTimingQuery(self):
+        video_timing = Sii9777VideoTiming_t()
+        with self.device.lock:
+            retcode = Sii9777VideoTimingQuery(self.device.drv_instance, byref(video_timing))
+        self._test_api_retcode("Sii9777VideoTimingQuery", retcode)
+
+        items = ["%s=%s" % (field[0], getattr(video_timing, field[0])) for field in Sii9777VideoTiming_t._fields_]
+        logger.debug("VideoTiming: %s", items)
+        self.assertTrue(True, msg="Current video timing is %s" % items)
+
+
+class VideoFormatQueryTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777VideoFormatQuery(self):
+        video_format = Sii9777VideoFmt_t()
+        with self.device.lock:
+            retcode = Sii9777VideoFormatQuery(self.device.drv_instance, byref(video_format))
+        self._test_api_retcode("Sii9777VideoFormatQuery", retcode)
+
+        items = []
+        for fmt_field in Sii9777VideoFmt_t._fields_:
+            field_name = fmt_field[0]
+            field_type = fmt_field[1]
+            value = getattr(video_format, field_name)
+            if field_name in ("pixFrm", "vertBarInfo", "horizBarInfo"):
+                value = {f[0]: getattr(value, f[0]) for f in field_type._fields_}
+            item = "%s=%s" % (field_name, value)
+            items.append(item)
+        logger.debug("VideoFormat: %s", items)
+        self.assertTrue(True, msg="Current video format is %s" % items)
+
+
+class AudioFormatQueryTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777AudioFormatQuery(self):
+        audio_format = Sii9777AudioFrm_t()
+        with self.device.lock:
+            retcode = Sii9777AudioFormatQuery(self.device.drv_instance, byref(audio_format))
+        self._test_api_retcode("Sii9777AudioFormatQuery", retcode)
+
+        items = []
+        aifData = [audio_format.aifData[i] for i in range(10)]
+        csData = [audio_format.csData[i] for i in range(7)]
+        items.append("aifData=%s" % aifData)
+        items.append("csData=%s" % csData)
+        self.assertTrue(True, msg="Current audio format is %s" % items)
+
+
+class IsrcQueryTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777IsrcQuery(self):
+        isrc = Sii9777Isrc_t()
+        with self.device.lock:
+            Sii9777IsrcQuery(self.device.drv_instance, byref(isrc))
+        items = ["%s=%s" % (field[0], getattr(isrc, field[0])) for field in Sii9777Isrc_t._fields_]
+        logger.debug("Isrc: %s", items)
+        self.assertTrue(True, msg="Current isrc is %s" % items)
+
+
+class AcpQueryTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777AcpQuery(self):
+        """
+        ACP: Audio Content Protection
+        Outputs Audio Content Protection information to a Sii9777Acp_t data structure.
+        The structure is based on the ACP packet as defined in <insert cross-reference>.
+        SII9777_EVENT_FLAGS__ACP_CHNG notification is generated when incoming ACP information changes.
+        """
+        acp = Sii9777Acp_t()
+        with self.device.lock:
+            Sii9777AcpQuery(self.device.drv_instance, byref(acp))
+        items = ["%s=%s" % (field[0], getattr(acp, field[0])) for field in Sii9777Acp_t._fields_]
+        logger.debug("ACP: %s", items)
+        self.assertTrue(True, msg="Current ACP is %s" % items)
+
+
+class SpdQueryTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777SpdQuery(self):
+        """
+        SPD: Source Product Description
+        The structure is based on SPD packet.
+        SII9777_EVENT_FLAGS__SPD_CHNG notification is generated when incoming SPD information changes.
+        """
+        spd = Sii9777Spd_t()
+        with self.device.lock:
+            Sii9777SpdQuery(self.device.drv_instance, byref(spd))
+        items = ["%s=%s" % (field[0], getattr(spd, field[0])) for field in Sii9777Spd_t._fields_]
+        logger.debug("SPD: %s", items)
+        self.assertTrue(True, msg="Current SPD is %s" % items)

@@ -1,0 +1,107 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+from simg.test.framework import TestContextManager, parametrize
+from simg.util.avproducer.astro import VG876
+from simg.util.avproducer.audioinfo import AudioInfo
+from simg.test.framework import TestCase
+import time
+
+hbra_dolby_truehd_formats = ['Dolby_TrueHD_96KHz_7.1', 'Dolby_TrueHD_48KHz_5.1', 'Dolby_TrueHD_192KHz_5.1',
+                             'Dolby_TrueHD_96KHz_5.1', 'Dolby_TrueHD_96KHz_6.1', 'Dolby_TrueHD_48KHz_6.1',
+                             'Dolby_TrueHD_48KHz_7.1']
+hbra_dts_hd_master_formats_lite = ['DTS-HD_Master_48KHz_7.1', 'DTS-HD_Master_96KHz_7.1_ss',
+                                   'DTS-HD_Master_48KHz_7.1_ss',
+                                   'DTS-HD_Master_96KHz_7.1', 'DTS-HD_Master_96KHz_5.1', 'DTS-HD_Master_48KHz_6.1',
+                                   'DTS-HD_Master_48KHz_5.1', 'DTS-HD_Master_96KHz_6.1']
+
+hbra_dts_hd_master_formats_full = ['DTS-HD_Master_48KHz_7.1', 'DTS-HD_Master_96KHz_7.1_ss',
+                                   'DTS-HD_Master_48KHz_7.1_ss', 'DTS-HD_Master_96KHz_7.1',
+                                   'DTS-HD_Master_96KHz_5.1', 'DTS-HD_Master_48KHz_6.1',
+                                   'DTS-HD_Master_48KHz_5.1', 'DTS-HD_Master_96KHz_6.1', 'DTS-HD_Master_192KHz_2',
+                                   'DTS-HD_Master_192KHz_5.1']
+
+# Composite names to make handle odd file-based High Bit Rate audio testing
+supported_composite_video_formats = {
+    '301::1920x1080i@59.94': hbra_dolby_truehd_formats,
+    '311::1920x1080i@59.94': hbra_dts_hd_master_formats_lite,
+    '312::1920x1080i@59.94': ['DTS-HD_Master_192KHz_2'],
+    '313::1920x1080i@59.94': ['DTS-HD_Master_192KHz_5.1'],
+    '351::1920x1080p@59.94': hbra_dolby_truehd_formats,
+    '361::1920x1080p@59.94': hbra_dts_hd_master_formats_lite,
+    '362::1920x1080p@59.94': ['DTS-HD_Master_192KHz_2'],
+    '363::1920x1080p@59.94': ['DTS-HD_Master_192KHz_5.1'],
+    '1428::1920x1080p@23.98': hbra_dolby_truehd_formats + hbra_dts_hd_master_formats_full,
+    '1429::1920x1080p@24': hbra_dolby_truehd_formats + hbra_dts_hd_master_formats_full,
+    '401::1280x720p@59.94': hbra_dolby_truehd_formats,
+    '411::1280x720p@59.94': hbra_dts_hd_master_formats_lite,
+    '412::1280x720p@59.94': ['DTS-HD_Master_192KHz_2'],
+    '413::1280x720p@59.94': ['DTS-HD_Master_192KHz_5.1'],
+}
+
+
+class HBRATestCase(BaseJaxTestCase):
+    def connect_HD980(self):
+        host = "172.16.132.251"
+        username = "qd"
+        password = "qd"
+        self.qd980 = AudioInfo(host, username, password)
+
+    def setUp(self):
+        resource = TestContextManager.current_context().resource
+        self.txunit, self.rxunit = resource.acquire_pair()
+        self.tx_gen3_1 = self.txunit.device.gen3_1
+        self.tx_gen3_2 = self.txunit.device.gen3_2
+        self.rx_gen3_1 = self.rxunit.device.gen3_1
+        self.rx_gen3_2 = self.rxunit.device.gen3_2
+        self.qd = self.txunit.avproducer
+        self.vg876 = VG876(host="172.16.132.250")
+
+        self.capture_image_dir = os.path.join(self.logdir, "images")
+        fs.mkpath(self.capture_image_dir)
+        self.capture_image_name = os.path.join(self.capture_image_dir, self.name + ".jpg")
+
+        if re.match("DVI_", self.format, re.IGNORECASE):
+            self.iface = "DVI"
+            self.format = re.sub("DVI_", "", self.format)
+        elif re.match("HDMI_", self.format, re.IGNORECASE):
+            self.iface = "HDMI"
+            self.format = re.sub("HDMI_", "", self.format)
+        else:
+            self.iface = "HDMI"
+
+        # if self.rx_gen3_2.nvramget(0x66) != 0x0:
+        #     self.rx_gen3_2.nvramset(0x66, 0x0)
+        #     self.rxunit.reset()
+        #     time.sleep(10)
+        self.make_connected(self.txunit.device, self.rxunit.device)
+
+        self.connect_HD980()
+
+    @parametrize("video_format", type=str, iteration=supported_composite_video_formats.keys())
+    def test_hbra(self):
+        self.video_format = supported_composite_video_formats.keys()
+        self.vg876.load_composite_video_format(self.video_format)
+        hbra_formats = supported_composite_video_formats.values()
+        for hbra_format in hbra_formats:
+            try:
+                self.vg876.load_composite_audio_format(hbra_format)
+                self.vg876.execute()
+            finally:
+                # We have to wait at least 10s for AVR to decode and display the correct audio type.
+                time.sleep(10)
+                __HBRA_FORMAT_NAME = self.video_format + hbra_format
+                self.rxunit.webcam.capture_image(__HBRA_FORAMT_NAME)
+
+            """This audio info frame is not usable for HBRA. We have to comment them out temporarily.
+               2015.01.04. <FMa>
+            """
+            # audio_infoframe = self.qd980.get_audio_info(mem_size="small")
+            # print audio_infoframe
+
+if __name__ == "__main__":
+    case = HBRATestCase()
+    case.setUp()
+    case.test_hbra()

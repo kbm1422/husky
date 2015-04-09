@@ -1,0 +1,508 @@
+<TestSuite name="Formats Test Suite">
+    <For list="VideoFormat" type="xpath" param="format" >
+        <TestCase name="test_video_format_%(format)s" class="cases.common.test_formats_astro.FormatsTestCase" method="test_video_format">
+            <Attribute name="format" value="%(format)s" />
+            <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+            <Attribute name="device" value="%(device)s"/>
+            <Attribute name="listen_timeout" value="3.0"/>
+        </TestCase>
+    </For>
+
+    <For list="AudioFormat" type="xpath" param="format" >
+        <TestCase name="test_audio_format_%(format)s" class="cases.common.test_formats_astro.FormatsTestCase" method="test_audio_format">
+            <Attribute name="format" value="%(format)s" />
+            <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+            <Attribute name="device" value="%(device)s"/>
+            <Attribute name="listen_timeout" value="3.0"/>
+        </TestCase>
+    </For>
+
+    <VideoFormat>EIA1440x480i@59.94_RGB_8</VideoFormat>
+    <VideoFormat>EIA1440x480i@59.94_444_8</VideoFormat>
+    <VideoFormat>EIA1440x480i@59.94_422_8</VideoFormat>
+
+    <VideoFormat>EIA1440x480i@59.94_RGB_10</VideoFormat>
+    <VideoFormat>EIA1440x480i@59.94_444_10</VideoFormat>
+    <VideoFormat>EIA1440x480i@59.94_422_10</VideoFormat>
+
+    <VideoFormat>EIA1440x480i@59.94_RGB_12</VideoFormat>
+    <VideoFormat>EIA1440x480i@59.94_444_12</VideoFormat>
+    <VideoFormat>EIA1440x480i@59.94_422_12</VideoFormat>
+
+    <VideoFormat>EIA1440x480i@60_RGB_8</VideoFormat>
+    <VideoFormat>EIA1440x480i@60_444_8</VideoFormat>
+    <VideoFormat>EIA1440x480i@60_422_8</VideoFormat>
+
+    <VideoFormat>EIA1440x480i@60_RGB_10</VideoFormat>
+    <VideoFormat>EIA1440x480i@60_444_10</VideoFormat>
+    <VideoFormat>EIA1440x480i@60_422_10</VideoFormat>
+
+    <VideoFormat>EIA1440x480i@60_RGB_12</VideoFormat>
+    <VideoFormat>EIA1440x480i@60_444_12</VideoFormat>
+    <VideoFormat>EIA1440x480i@60_422_12</VideoFormat>
+
+    <VideoFormat>EIA2880x480i@59.94_RGB_8</VideoFormat>
+    <VideoFormat>EIA2880x480i@59.94_444_8</VideoFormat>
+    <VideoFormat>EIA2880x480i@59.94_422_8</VideoFormat>
+
+    <VideoFormat>EIA2880x480i@59.94_RGB_10</VideoFormat>
+    <VideoFormat>EIA2880x480i@59.94_444_10</VideoFormat>
+    <VideoFormat>EIA2880x480i@59.94_422_10</VideoFormat>
+
+    <VideoFormat>EIA2880x480i@59.94_RGB_12</VideoFormat>
+    <VideoFormat>EIA2880x480i@59.94_444_12</VideoFormat>
+    <VideoFormat>EIA2880x480i@59.94_422_12</VideoFormat>
+
+    <VideoFormat>EIA2880x480i@60_RGB_8</VideoFormat>
+    <VideoFormat>EIA2880x480i@60_444_8</VideoFormat>
+    <VideoFormat>EIA2880x480i@60_422_8</VideoFormat>
+
+    <VideoFormat>EIA2880x480i@60_RGB_10</VideoFormat>
+    <VideoFormat>EIA2880x480i@60_444_10</VideoFormat>
+    <VideoFormat>EIA2880x480i@60_422_10</VideoFormat>
+
+    <VideoFormat>EIA2880x480i@60_RGB_12</VideoFormat>
+    <VideoFormat>EIA2880x480i@60_444_12</VideoFormat>
+    <VideoFormat>EIA2880x480i@60_422_12</VideoFormat>
+
+    <VideoFormat>EIA640x480p@60_RGB_8</VideoFormat>    
+    <VideoFormat>EIA640x480p@60_444_8</VideoFormat>    
+    <VideoFormat>EIA640x480p@60_422_8</VideoFormat>    
+
+    <VideoFormat>EIA640x480p@60_RGB_10</VideoFormat>    
+    <VideoFormat>EIA640x480p@60_444_10</VideoFormat>    
+    <VideoFormat>EIA640x480p@60_422_10</VideoFormat>    
+
+    <VideoFormat>EIA640x480p@60_RGB_12</VideoFormat>    
+    <VideoFormat>EIA640x480p@60_444_12</VideoFormat>    
+    <VideoFormat>EIA640x480p@60_422_12</VideoFormat>    
+
+
+    <VideoFormat>EIA720x480p@59.94_RGB_8</VideoFormat>
+    <VideoFormat>EIA720x480p@59.94_444_8</VideoFormat>
+    <VideoFormat>EIA720x480p@59.94_422_8</VideoFormat>
+
+    <VideoFormat>EIA720x480p@59.94_RGB_10</VideoFormat>
+    <VideoFormat>EIA720x480p@59.94_444_10</VideoFormat>
+    <VideoFormat>EIA720x480p@59.94_422_10</VideoFormat>
+
+    <VideoFormat>EIA720x480p@59.94_RGB_12</VideoFormat>
+    <VideoFormat>EIA720x480p@59.94_444_12</VideoFormat>
+    <VideoFormat>EIA720x480p@59.94_422_12</VideoFormat>
+
+
+    <VideoFormat>EIA720x480p@60_RGB_8</VideoFormat>
+    <VideoFormat>EIA720x480p@60_444_8</VideoFormat>
+    <VideoFormat>EIA720x480p@60_422_8</VideoFormat>
+
+    <VideoFormat>EIA720x480p@60_RGB_10</VideoFormat>
+    <VideoFormat>EIA720x480p@60_444_10</VideoFormat>
+    <VideoFormat>EIA720x480p@60_422_10</VideoFormat>
+
+    <VideoFormat>EIA720x480p@60_RGB_12</VideoFormat>
+    <VideoFormat>EIA720x480p@60_444_12</VideoFormat>
+    <VideoFormat>EIA720x480p@60_422_12</VideoFormat>
+
+    <VideoFormat>EIA1440x480p@59.94_RGB_8</VideoFormat>
+    <VideoFormat>EIA1440x480p@59.94_444_8</VideoFormat>
+    <VideoFormat>EIA1440x480p@59.94_422_8</VideoFormat>
+
+    <VideoFormat>EIA1440x480p@59.94_RGB_10</VideoFormat>
+    <VideoFormat>EIA1440x480p@59.94_444_10</VideoFormat>
+    <VideoFormat>EIA1440x480p@59.94_422_10</VideoFormat>
+
+    <VideoFormat>EIA1440x480p@59.94_RGB_12</VideoFormat>
+    <VideoFormat>EIA1440x480p@59.94_444_12</VideoFormat>
+    <VideoFormat>EIA1440x480p@59.94_422_12</VideoFormat>
+
+    <VideoFormat>EIA1440x480p@60_RGB_8</VideoFormat>
+    <VideoFormat>EIA1440x480p@60_444_8</VideoFormat>
+    <VideoFormat>EIA1440x480p@60_422_8</VideoFormat>
+
+    <VideoFormat>EIA1440x480p@60_RGB_10</VideoFormat>
+    <VideoFormat>EIA1440x480p@60_444_10</VideoFormat>
+    <VideoFormat>EIA1440x480p@60_422_10</VideoFormat>
+
+    <VideoFormat>EIA1440x480p@60_RGB_12</VideoFormat>
+    <VideoFormat>EIA1440x480p@60_444_12</VideoFormat>
+    <VideoFormat>EIA1440x480p@60_422_12</VideoFormat>
+
+
+    <VideoFormat>EIA1440x576i@50_RGB_8</VideoFormat>
+    <VideoFormat>EIA1440x576i@50_444_8</VideoFormat>
+    <VideoFormat>EIA1440x576i@50_422_8</VideoFormat>
+
+    <VideoFormat>EIA1440x576i@50_RGB_10</VideoFormat>
+    <VideoFormat>EIA1440x576i@50_444_10</VideoFormat>
+    <VideoFormat>EIA1440x576i@50_422_10</VideoFormat>
+
+    <VideoFormat>EIA1440x576i@50_RGB_12</VideoFormat>
+    <VideoFormat>EIA1440x576i@50_444_12</VideoFormat>
+    <VideoFormat>EIA1440x576i@50_422_12</VideoFormat>
+
+    <VideoFormat>EIA2880x576i@50_RGB_8</VideoFormat>
+    <VideoFormat>EIA2880x576i@50_444_8</VideoFormat>
+    <VideoFormat>EIA2880x576i@50_422_8</VideoFormat>
+
+    <VideoFormat>EIA2880x576i@50_RGB_10</VideoFormat>
+    <VideoFormat>EIA2880x576i@50_444_10</VideoFormat>
+    <VideoFormat>EIA2880x576i@50_422_10</VideoFormat>
+
+    <VideoFormat>EIA2880x576i@50_RGB_12</VideoFormat>
+    <VideoFormat>EIA2880x576i@50_444_12</VideoFormat>
+    <VideoFormat>EIA2880x576i@50_422_12</VideoFormat>
+
+    <VideoFormat>EIA720x576p@50_RGB_8</VideoFormat>
+    <VideoFormat>EIA720x576p@50_444_8</VideoFormat>
+    <VideoFormat>EIA720x576p@50_422_8</VideoFormat>
+
+    <VideoFormat>EIA720x576p@50_RGB_10</VideoFormat>
+    <VideoFormat>EIA720x576p@50_444_10</VideoFormat>
+    <VideoFormat>EIA720x576p@50_422_10</VideoFormat>
+
+    <VideoFormat>EIA720x576p@50_RGB_12</VideoFormat>
+    <VideoFormat>EIA720x576p@50_444_12</VideoFormat>
+    <VideoFormat>EIA720x576p@50_422_12</VideoFormat>
+
+    <VideoFormat>EIA1440x576p@50_RGB_8</VideoFormat>
+    <VideoFormat>EIA1440x576p@50_444_8</VideoFormat>
+    <VideoFormat>EIA1440x576p@50_422_8</VideoFormat>
+
+    <VideoFormat>EIA1440x576p@50_RGB_10</VideoFormat>
+    <VideoFormat>EIA1440x576p@50_444_10</VideoFormat>
+    <VideoFormat>EIA1440x576p@50_422_10</VideoFormat>
+
+    <VideoFormat>EIA1440x576p@50_RGB_12</VideoFormat>
+    <VideoFormat>EIA1440x576p@50_444_12</VideoFormat>
+    <VideoFormat>EIA1440x576p@50_422_12</VideoFormat>
+
+    <VideoFormat>EIA1280x720p@50_RGB_8</VideoFormat>
+    <VideoFormat>EIA1280x720p@50_444_8</VideoFormat>
+    <VideoFormat>EIA1280x720p@50_422_8</VideoFormat>
+
+    <VideoFormat>EIA1280x720p@50_RGB_10</VideoFormat>
+    <VideoFormat>EIA1280x720p@50_444_10</VideoFormat>
+    <VideoFormat>EIA1280x720p@50_422_10</VideoFormat>
+
+    <VideoFormat>EIA1280x720p@50_RGB_12</VideoFormat>
+    <VideoFormat>EIA1280x720p@50_444_12</VideoFormat>
+    <VideoFormat>EIA1280x720p@50_422_12</VideoFormat>
+
+    <VideoFormat>EIA1280x720p@59.94_RGB_8</VideoFormat>
+    <VideoFormat>EIA1280x720p@59.94_444_8</VideoFormat>
+    <VideoFormat>EIA1280x720p@59.94_422_8</VideoFormat>
+
+    <VideoFormat>EIA1280x720p@59.94_RGB_10</VideoFormat>
+    <VideoFormat>EIA1280x720p@59.94_444_10</VideoFormat>
+    <VideoFormat>EIA1280x720p@59.94_422_10</VideoFormat>
+
+    <VideoFormat>EIA1280x720p@59.94_RGB_12</VideoFormat>
+    <VideoFormat>EIA1280x720p@59.94_444_12</VideoFormat>
+    <VideoFormat>EIA1280x720p@59.94_422_12</VideoFormat>
+
+    <VideoFormat>EIA1280x720p@60_RGB_8</VideoFormat>
+    <VideoFormat>EIA1280x720p@60_444_8</VideoFormat>
+    <VideoFormat>EIA1280x720p@60_422_8</VideoFormat>
+
+    <VideoFormat>EIA1280x720p@60_RGB_10</VideoFormat>
+    <VideoFormat>EIA1280x720p@60_444_10</VideoFormat>
+    <VideoFormat>EIA1280x720p@60_422_10</VideoFormat>
+
+    <VideoFormat>EIA1280x720p@60_RGB_12</VideoFormat>
+    <VideoFormat>EIA1280x720p@60_444_12</VideoFormat>
+    <VideoFormat>EIA1280x720p@60_422_12</VideoFormat>
+
+    <VideoFormat>EIA1920x1080i@50_RGB_8</VideoFormat>
+    <VideoFormat>EIA1920x1080i@50_444_8</VideoFormat>
+    <VideoFormat>EIA1920x1080i@50_422_8</VideoFormat>
+
+    <VideoFormat>EIA1920x1080i@50_RGB_10</VideoFormat>
+    <VideoFormat>EIA1920x1080i@50_444_10</VideoFormat>
+    <VideoFormat>EIA1920x1080i@50_422_10</VideoFormat>
+
+    <VideoFormat>EIA1920x1080i@50_RGB_12</VideoFormat>
+    <VideoFormat>EIA1920x1080i@50_444_12</VideoFormat>
+    <VideoFormat>EIA1920x1080i@50_422_12</VideoFormat>
+
+    <VideoFormat>EIA1920x1080i@59.94_RGB_8</VideoFormat>
+    <VideoFormat>EIA1920x1080i@59.94_444_8</VideoFormat>
+    <VideoFormat>EIA1920x1080i@59.94_422_8</VideoFormat>
+
+    <VideoFormat>EIA1920x1080i@59.94_RGB_10</VideoFormat>
+    <VideoFormat>EIA1920x1080i@59.94_444_10</VideoFormat>
+    <VideoFormat>EIA1920x1080i@59.94_422_10</VideoFormat>
+
+    <VideoFormat>EIA1920x1080i@59.94_RGB_12</VideoFormat>
+    <VideoFormat>EIA1920x1080i@59.94_444_12</VideoFormat>
+    <VideoFormat>EIA1920x1080i@59.94_422_12</VideoFormat>
+
+    <VideoFormat>EIA1920x1080i@60_RGB_8</VideoFormat>
+    <VideoFormat>EIA1920x1080i@60_444_8</VideoFormat>
+    <VideoFormat>EIA1920x1080i@60_422_8</VideoFormat>
+
+    <VideoFormat>EIA1920x1080i@60_RGB_10</VideoFormat>
+    <VideoFormat>EIA1920x1080i@60_444_10</VideoFormat>
+    <VideoFormat>EIA1920x1080i@60_422_10</VideoFormat>
+
+    <VideoFormat>EIA1920x1080i@60_RGB_12</VideoFormat>
+    <VideoFormat>EIA1920x1080i@60_444_12</VideoFormat>
+    <VideoFormat>EIA1920x1080i@60_422_12</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@23.97_RGB_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@23.97_444_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@23.97_422_8</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@23.97_RGB_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@23.97_444_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@23.97_422_10</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@23.97_RGB_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@23.97_444_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@23.97_422_12</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@24_RGB_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@24_444_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@24_422_8</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@24_RGB_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@24_444_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@24_422_10</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@24_RGB_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@24_444_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@24_422_12</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@25_RGB_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@25_444_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@25_422_8</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@25_RGB_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@25_444_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@25_422_10</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@25_RGB_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@25_444_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@25_422_12</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@30_RGB_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@30_444_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@30_422_8</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@30_RGB_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@30_444_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@30_422_10</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@30_RGB_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@30_444_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@30_422_12</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@50_RGB_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@50_444_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@50_422_8</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@50_RGB_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@50_444_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@50_422_10</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@50_RGB_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@50_444_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@50_422_12</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@60_RGB_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@60_444_8</VideoFormat>
+    <VideoFormat>EIA1920x1080p@60_422_8</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@60_RGB_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@60_444_10</VideoFormat>
+    <VideoFormat>EIA1920x1080p@60_422_10</VideoFormat>
+
+    <VideoFormat>EIA1920x1080p@60_RGB_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@60_444_12</VideoFormat>
+    <VideoFormat>EIA1920x1080p@60_422_12</VideoFormat>
+
+
+    <VideoFormat>3D 720p50 FramePack_RGB_8</VideoFormat>
+    <VideoFormat>3D 720p50 FramePack_444_8</VideoFormat>
+    <VideoFormat>3D 720p50 FramePack_422_8</VideoFormat>
+
+    <VideoFormat>3D 720p60 FramePack_RGB_8</VideoFormat>
+    <VideoFormat>3D 720p60 FramePack_444_8</VideoFormat>
+    <VideoFormat>3D 720p60 FramePack_422_8</VideoFormat>
+
+    <VideoFormat>3D 1080p24 FramePack_RGB_8</VideoFormat>
+    <VideoFormat>3D 1080p24 FramePack_444_8</VideoFormat>
+    <VideoFormat>3D 1080p24 FramePack_422_8</VideoFormat>
+
+
+    <VideoFormat>3D 720p50 TopandBot_RGB_8</VideoFormat>
+    <VideoFormat>3D 720p50 TopandBot_444_8</VideoFormat>
+    <VideoFormat>3D 720p50 TopandBot_422_8</VideoFormat>
+
+    <VideoFormat>3D 720p60 TopandBot_RGB_8</VideoFormat>
+    <VideoFormat>3D 720p60 TopandBot_444_8</VideoFormat>
+    <VideoFormat>3D 720p60 TopandBot_422_8</VideoFormat>
+
+    <VideoFormat>3D 1080p24 TopandBot_RGB_8</VideoFormat>
+    <VideoFormat>3D 1080p24 TopandBot_444_8</VideoFormat>
+    <VideoFormat>3D 1080p24 TopandBot_422_8</VideoFormat>
+
+    <VideoFormat>3D 720p50 Side_half_RGB_8_HHOO</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_444_8_HHOO</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_422_8_HHOO</VideoFormat>
+
+    <VideoFormat>3D 720p60 Side_half_RGB_8_HHOO</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_444_8_HHOO</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_422_8_HHOO</VideoFormat>
+
+    <VideoFormat>3D 1080i50 Side_half_RGB_8_HHOO</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_444_8_HHOO</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_422_8_HHOO</VideoFormat>
+
+    <VideoFormat>3D 1080i60 Side_half_RGB_8_HHOO</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_444_8_HHOO</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_422_8_HHOO</VideoFormat>
+
+    <VideoFormat>3D 720p50 Side_half_RGB_8_HHOE</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_444_8_HHOE</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_422_8_HHOE</VideoFormat>
+
+    <VideoFormat>3D 720p60 Side_half_RGB_8_HHOE</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_444_8_HHOE</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_422_8_HHOE</VideoFormat>
+
+    <VideoFormat>3D 1080i50 Side_half_RGB_8_HHOE</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_444_8_HHOE</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_422_8_HHOE</VideoFormat>
+
+    <VideoFormat>3D 1080i60 Side_half_RGB_8_HHOE</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_444_8_HHOE</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_422_8_HHOE</VideoFormat>
+
+    <VideoFormat>3D 720p50 Side_half_RGB_8_HHEO</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_444_8_HHEO</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_422_8_HHEO</VideoFormat>
+
+    <VideoFormat>3D 720p60 Side_half_RGB_8_HHEO</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_444_8_HHEO</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_422_8_HHEO</VideoFormat>
+
+    <VideoFormat>3D 1080i50 Side_half_RGB_8_HHEO</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_444_8_HHEO</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_422_8_HHEO</VideoFormat>
+
+    <VideoFormat>3D 1080i60 Side_half_RGB_8_HHEO</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_444_8_HHEO</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_422_8_HHEO</VideoFormat>
+
+    <VideoFormat>3D 720p50 Side_half_RGB_8_HHEE</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_444_8_HHEE</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_422_8_HHEE</VideoFormat>
+
+    <VideoFormat>3D 720p60 Side_half_RGB_8_HHEE</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_444_8_HHEE</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_422_8_HHEE</VideoFormat>
+
+    <VideoFormat>3D 1080i50 Side_half_RGB_8_HHEE</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_444_8_HHEE</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_422_8_HHEE</VideoFormat>
+
+    <VideoFormat>3D 1080i60 Side_half_RGB_8_HHEE</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_444_8_HHEE</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_422_8_HHEE</VideoFormat>
+
+    <VideoFormat>3D 720p50 Side_half_RGB_8_HQOO</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_444_8_HQOO</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_422_8_HQOO</VideoFormat>
+
+    <VideoFormat>3D 720p60 Side_half_RGB_8_HQOO</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_444_8_HQOO</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_422_8_HQOO</VideoFormat>
+
+    <VideoFormat>3D 1080i50 Side_half_RGB_8_HQOO</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_444_8_HQOO</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_422_8_HQOO</VideoFormat>
+
+    <VideoFormat>3D 1080i60 Side_half_RGB_8_HQOO</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_444_8_HQOO</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_422_8_HQOO</VideoFormat>
+
+    <VideoFormat>3D 720p50 Side_half_RGB_8_HQOE</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_444_8_HQOE</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_422_8_HQOE</VideoFormat>
+
+    <VideoFormat>3D 720p60 Side_half_RGB_8_HQOE</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_444_8_HQOE</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_422_8_HQOE</VideoFormat>
+
+    <VideoFormat>3D 1080i50 Side_half_RGB_8_HQOE</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_444_8_HQOE</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_422_8_HQOE</VideoFormat>
+
+    <VideoFormat>3D 1080i60 Side_half_RGB_8_HQOE</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_444_8_HQOE</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_422_8_HQOE</VideoFormat>
+
+    <VideoFormat>3D 720p50 Side_half_RGB_8_HQEO</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_444_8_HQEO</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_422_8_HQEO</VideoFormat>
+
+    <VideoFormat>3D 720p60 Side_half_RGB_8_HQEO</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_444_8_HQEO</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_422_8_HQEO</VideoFormat>
+
+    <VideoFormat>3D 1080i50 Side_half_RGB_8_HQEO</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_444_8_HQEO</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_422_8_HQEO</VideoFormat>
+
+    <VideoFormat>3D 1080i60 Side_half_RGB_8_HQEO</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_444_8_HQEO</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_422_8_HQEO</VideoFormat>
+
+    <VideoFormat>3D 720p50 Side_half_RGB_8_HQEE</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_444_8_HQEE</VideoFormat>
+    <VideoFormat>3D 720p50 Side_half_422_8_HQEE</VideoFormat>
+
+    <VideoFormat>3D 720p60 Side_half_RGB_8_HQEE</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_444_8_HQEE</VideoFormat>
+    <VideoFormat>3D 720p60 Side_half_422_8_HQEE</VideoFormat>
+
+    <VideoFormat>3D 1080i50 Side_half_RGB_8_HQEE</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_444_8_HQEE</VideoFormat>
+    <VideoFormat>3D 1080i50 Side_half_422_8_HQEE</VideoFormat>
+
+    <VideoFormat>3D 1080i60 Side_half_RGB_8_HQEE</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_444_8_HQEE</VideoFormat>
+    <VideoFormat>3D 1080i60 Side_half_422_8_HQEE</VideoFormat>
+
+    <AudioFormat>2ch_32 KHz_24-bit</AudioFormat>
+    <AudioFormat>2ch_44.1 KHz_24-bit</AudioFormat>
+    <AudioFormat>2ch_48 KHz_24-bit</AudioFormat>
+    <AudioFormat>2ch_88.2 KHz_24-bit</AudioFormat>
+    <AudioFormat>2ch_96 KHz_24-bit</AudioFormat>
+    <AudioFormat>2ch_176.4 KHz_24-bit</AudioFormat>
+    <AudioFormat>2ch_192 KHz_24-bit</AudioFormat>
+
+    <AudioFormat>4ch_32 KHz_24-bit</AudioFormat>
+    <AudioFormat>4ch_44.1 KHz_24-bit</AudioFormat>
+    <AudioFormat>4ch_48 KHz_24-bit</AudioFormat>
+    <AudioFormat>4ch_88.2 KHz_24-bit</AudioFormat>
+    <AudioFormat>4ch_96 KHz_24-bit</AudioFormat>
+    <AudioFormat>4ch_176.4 KHz_24-bit</AudioFormat>
+    <AudioFormat>4ch_192 KHz_24-bit</AudioFormat>
+
+    <AudioFormat>6ch_32 KHz_24-bit</AudioFormat>
+    <AudioFormat>6ch_44.1 KHz_24-bit</AudioFormat>
+    <AudioFormat>6ch_48 KHz_24-bit</AudioFormat>
+    <AudioFormat>6ch_88.2 KHz_24-bit</AudioFormat>
+    <AudioFormat>6ch_96 KHz_24-bit</AudioFormat>
+    <AudioFormat>6ch_176.4 KHz_24-bit</AudioFormat>
+    <AudioFormat>6ch_192 KHz_24-bit</AudioFormat>
+
+    <AudioFormat>8ch_32 KHz_24-bit</AudioFormat>
+    <AudioFormat>8ch_44.1 KHz_24-bit</AudioFormat>
+    <AudioFormat>8ch_48 KHz_24-bit</AudioFormat>
+    <AudioFormat>8ch_88.2 KHz_24-bit</AudioFormat>
+    <AudioFormat>8ch_96 KHz_24-bit</AudioFormat>
+    <AudioFormat>8ch_176.4 KHz_24-bit</AudioFormat>
+    <AudioFormat>8ch_192 KHz_24-bit</AudioFormat>
+</TestSuite>

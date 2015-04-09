@@ -1,0 +1,289 @@
+#!/usr/bin/env python
+# -*- coding: UTF-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import time
+import random
+
+from simg.test.framework import TestCase, LinkedTestCase
+from simg.test.framework import TestContextManager
+from simg.util import sstring
+
+from base import BaseTestCase
+
+
+class GoldenUnitTestCase(TestCase):
+    def setUp(self):
+        self.txunit, self.rxunit = TestContextManager.getCurrentContext().resource.acquire_pair()
+
+    def test_fm_set_golden(self):
+        resp = self.rxunit.device.sendcmd("custparamset 3 0x0")
+        logger.debug("resp of custparamset 3 0x0: %s", resp)
+        self.assertEqual("success", resp, "custparamset 3 0x0 failed")
+
+        resp = self.rxunit.device.sendcmd("custparamset 4 0x0")
+        logger.debug("resp of custparamset 4 0x0: %s", resp)
+        self.assertEqual("success", resp, "custparamset 4 0x0 failed")
+
+        resp = self.rxunit.device.sendcmd("fm_set_golden %s" % self.pline)
+        logger.debug("resp of fm_set_golden %s: %s", self.pline, resp)
+        self.assertEqual("OK", resp, "fm_set_golden %s" % self.pline)
+
+        resp = self.rxunit.device.sendcmd("reset")
+        logger.debug("resp of reset: %s", resp)
+        self.assertEqual("OK", resp, "reset pass")
+
+        time.sleep(5)
+
+        actual = self.rxunit.device.sendcmd("custparamget 0")
+        logger.debug("resp of custparamget 0: %s", actual)
+        first = "a" if self.plinenum == 10 else self.pline
+        expected = "%s:0:0:0:0:0" % first
+        self.assertEqual(actual, expected.lower(), "custparamsetbulk set mac address failed")
+
+        actual = self.rxunit.device.sendcmd("custparamget 3")
+        logger.debug("resp of custparamget 3: %s", actual)
+        expected = "cfgget id=0x63"
+        self.assertEqual(expected, actual, "fm_set_golden set product id failed")
+
+        actual = self.rxunit.device.sendcmd("custparamget 4")
+        logger.debug("resp of custparamget 4: %s", actual)
+        expected = "cfgget id=0x1"
+        self.assertEqual(expected, actual, "fm_set_golden set regulatory id failed")
+
+        actual = self.rxunit.device.sendcmd("custparamget 6")
+        logger.debug("resp of custparamget 6: %s", actual)
+        expected = "TEST_LINE_%s" % self.plinenum
+        self.assertIn(expected, actual, "fm_set_golden set wvan name failed")
+
+
+class DUTTestCase(LinkedTestCase, BaseTestCase):
+    methodNames = ("test_mode_off_before_wihd",
+                   "test_mode_wihd",
+                   "test_cmd_fm_test_mode",
+                   "test_scan",
+                   "test_join",
+                   "test_cmd_get_temperature_a",
+                   "test_connect",
+                   "test_timecost_between_testmode2connnected",
+                   "test_cmd_get_temperature_b",
+                   "test_temperature_difference",
+                   "test_hr_link_quality",
+                   "test_cmd_fm_test_mode_params",
+                   "test_mode_off_before_config",
+                   "test_mode_config",
+                   "test_cmd_custparamsetbulk",
+    )
+
+    def setUp(self):
+        mapping = {
+            "1":   (2, 0),
+            "2":   (3, 1),
+            "3":   (2, 2),
+            "4":   (3, 3),
+            "5":   (2, 4),
+            "6":   (3, 0),
+            "7":   (2, 1),
+            "8":   (3, 2),
+            "9":   (2, 3),
+            "10":  (3, 4)
+        }
+        self._expected_HR, self._expected_LR = mapping[str(self.pline)]
+        self.txunit, self.rxunit = TestContextManager.getCurrentContext().resource.acquire_pair()
+
+    def tearDown(self):
+        pass
+
+    def test_mode_off_before_wihd(self):
+        self._test_mode(self.txunit, "off")
+
+    def test_mode_wihd(self):
+        self._test_mode(self.txunit, "wihd")
+
+    def test_cmd_fm_test_mode(self):
+        self.__fmtestmode_time = time.time()
+        resp = self.txunit.device.sendcmd("fm_test_mode %s" % self._plinenum, timeout=3, interval=1)
+        self.assertIsNotNone(resp, "get response of fm_test_mode more than 3 times, and resp data is None")
+        self.assertIn("OK", resp, "OK is not in fm_test_mode response")
+
+    def test_scan(self):
+        self.__wvans = self._test_scan(self.txunit, self.rxunit)
+
+    def test_join(self):
+        start_time = time.time()
+        self._test_join(self.txunit, [self.__wvans[0]["id"], self.__wvans[0]["hr"], self.__wvans[0]["lr"]])
+        assoicated_time = time.time()
+        timecost = round(assoicated_time - start_time, 3)
+        self.add_concern("associate time", timecost)
+        self.assertLessEqual(timecost, 10, "associate time is greater than 10s")
+
+    def test_cmd_get_temperature_a(self):
+        self.__temperature_a = self.txunit.device.getTemperature()
+        self.assertIsNotNone(self.__temperature_a, "before connecting, get_temperature response is None")
+        self.add_concern("temperature a", self.__temperature_a)
+
+    def test_connect(self):
+        rxmac = "0a0000000000" if self._plinenum == 10 else "0%s0000000000" % self._plinenum
+        starttime = time.time()
+        self._test_connect(self.txunit, rxmac)
+        self.__connected_time = time.time()
+        conntime = round(self.__connected_time - starttime, 3)
+        self.add_concern("connect time", conntime)
+        self.assertLessEqual(conntime, 10, "connect time is greater than 10s", iswarning=True)
+
+    def test_timecost_between_testmode2connnected(self):
+        timecost_fm2connected = round(self.__connected_time - self.__fmtestmode_time, 3)
+        self.add_concern("the time cost between fm_test_mode and connected", timecost_fm2connected)
+        self.assertLessEqual(timecost_fm2connected, 10,
+                             msg="the time cost between fm_test_mode and connected should less equal 10s",
+                             iswarning=True)
+
+    def test_cmd_get_temperature_b(self):
+        self.__temperature_b = self.txunit.device.getTemperature()
+        self.assertIsNotNone(self.__temperature_b, "after connected, get_temperature response is None")
+        self.add_concern("temperature b", self.__temperature_b)
+
+    def test_temperature_difference(self):
+        self.assertLessEqual(self.__temperature_b - self.__temperature_a, 10,
+                             msg="the temperature between associated and connected should less equal 10")
+
+    def test_hr_link_quality(self):
+        quality = None
+        for index in range(10):
+            quality = self.txunit.device.getHRLinkQuality()
+            if quality is not None and quality != 0:
+                break
+            time.sleep(0.2)
+        self.add_concern("hr link quality", quality)
+        self.assertGreaterEqual(quality, 60,
+                                msg="the hr link quality should greater equal than 60, current is %s" % quality)
+
+    def test_cmd_fm_test_mode_params(self):
+        mac = self.txunit.device.getMacAddress()
+        expected = sstring.trimMacAddress("00:00:00:00:00:0a" if self._plinenum == 10 else "00:00:00:00:00:0%s" % self._plinenum)
+        self.assertEqual(mac, expected, "actual mac %s not matched with expected mac %s" % (mac, expected))
+
+        productId = self.txunit.device.getProductId()
+        expected = "0x3"
+        self.assertEqual(productId, expected, "product id not matched")
+
+        regulatoryId = self.txunit.device.getRegulatoryId()
+        expected = "0x1"
+        self.assertEqual(regulatoryId, expected, "regulatory id not matched")
+
+        wvanName = self.txunit.device.getWvanName()
+        expected = "TEST_LINE_%s" % self._plinenum
+        self.assertEqual(wvanName, expected, "wvan name not matched")
+
+        (hr, lr, devas, wvan_id) = self.txunit.device._get_umac_sm_show()
+        self.assertEqual(wvan_id, self._plinenum, "wvan id not matched with product line number")
+        self.assertEqual(devas, "Station", "device is not as Station")
+        self.assertEqual(hr, self._expected_HR, "hr not match")
+        self.assertEqual(lr, self._expected_LR, "lr not match")
+
+    def test_mode_off_before_config(self):
+        self._test_mode(self.txunit, "off")
+
+    def test_mode_config(self):
+        mode = "config"
+        actual = self.txunit.device.setMode(mode)
+        self.assertEqual(actual, mode, "mode should be config after setting")
+
+    def test_cmd_custparamsetbulk(self):
+        bulkdata = genBulkData()
+        trsanlatedBulkData = list(bulkdata)
+        trsanlatedBulkData[2] = sstring.quote(bulkdata[2])
+        trsanlatedBulkData[5] = "%%22%s%%22" % sstring.quote(bulkdata[5])
+
+        params = " ".join(trsanlatedBulkData)
+        data = self.txunit.device.sendcmd("custparamsetbulk %s" % params, interval=1, timeout=12)
+        self.assertIn("OK", data, "custparamsetbulk failed")
+
+        self._test_mode(self.txunit, "off")
+        self._test_mode(self.txunit, "wihd")
+
+        actual = self.txunit.device.getMacAddress()
+        expected = sstring.trimMacAddress(bulkdata[0])
+        self.assertEqual(actual, expected, "custparamsetbulk set mac address failed")
+
+        actual = self.txunit.device.getManuFacturerId()
+        expected = bulkdata[1]
+        self.assertEqual(actual, expected, "custparamsetbulk set manufacturer id failed")
+
+        actual = self.txunit.device.getDeviceName()
+        expected = bulkdata[2]
+        self.assertEqual(actual, expected, "custparamsetbulk set device name failed")
+
+        actual = self.txunit.device.getProductId()
+        expected = bulkdata[3]
+        self.assertEqual(actual, expected, "custparamsetbulk set product id failed")
+
+        actual = self.txunit.device.getRegulatoryId()
+        expected = bulkdata[4]
+        self.assertEqual(actual, expected, "custparamsetbulk set regulatory id failed")
+
+        actual = self.txunit.device.getWvanName()
+        expected = bulkdata[5]
+        self.assertEqual(actual, expected, "custparamsetbulk set wvan name failed")
+
+
+def genBulkData():
+    res = []
+
+    # get mac address
+    mac_val = []
+    value = []
+    mac = ""
+    for m in range(0, 255):
+        m = '%02X' % m
+        mac_val.append(str(m))
+
+    for m in range(0, 6):
+        value.append(random.choice(mac_val))
+        mac = mac+value[-1]
+    mac = mac[0:2]+":"+mac[2:4]+":"+mac[4:6]+":"+mac[6:8]+":"+mac[8:10]+":"+mac[10:12]
+    res.append(mac)
+
+    # get manual factory ID
+    manual_val = []
+    for i in range(0, 65535):
+        i = hex(i)
+        manual_val.append(i)
+    manid = random.choice(manual_val)
+    res.append(manid)
+
+    # get the device name
+    device_name = []
+    for dm in range(32, 127):
+        dm = '%c' % dm
+        device_name.append(dm)
+    de = random.choice(range(1, 16))
+    devicename = random.sample(device_name, de)
+    devicename = "".join(devicename)
+    res.append(devicename)
+
+    # get portable id
+    pid = '0x3'
+    res.append(pid)
+
+    # get regulator ID
+    reg_id = ['0x1', '0x4', '0x9']
+    regid = random.choice(reg_id)
+    res.append(regid)
+
+    # get wvan name
+    wvan_name =[]
+    for m in range(32, 127):
+        m = '%c'%m
+        wvan_name.append(str(m))
+
+    n = random.choice(range(1, 23))
+    wvanname = random.sample(wvan_name, n)
+    wvanname = "".join(wvanname)
+    res.append(wvanname)
+    return res
+
+if __name__ == "__main__":
+    pass

@@ -1,0 +1,94 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+import re
+import time
+import errno
+import tempfile
+
+from simg.net import get_tcpport_not_in_use
+from simg.devadapter import BaseDeviceAdapter
+
+from swam3 import SWAM3Connection, SWAM3Server
+
+
+class GEN3Connection(SWAM3Connection):
+    def upgradeFirmware(self, filename):
+        if not os.path.exists(filename):
+            raise OSError(errno.ENOENT, "Firmware '%s' not exists" % filename)
+
+        resetflag = False
+        logger.debug("Querying the Enable Host bootup with BB in resetmode NVRAM (0x67) value on Gen3...")
+        val = self.sendcmd("nvramget 0x67")
+        if re.search("Parameter 0x67=0x01", val, re.I):
+            logger.debug("Setting the Enable Host bootup with BB in resetmode NVRAM (0x67) value on Gen3 to 0...")
+            self.sendcmd("nvramset 0x67 0x0")
+            resetflag = True
+
+        logger.debug("Querying the Sleep duration on inactivity (0x66) value on Gen3...")
+        val = self.sendcmd("nvramget 0x66")
+        if not re.search("Parameter 0x67=0x0", val, re.I):
+            logger.debug("Setting the Sleep duration on inactivity (0x66) value on Gen3 to 0...")
+            self.sendcmd("nvramset 0x66 0x0")
+            resetflag = True
+
+        if resetflag:
+            self.reset()
+            time.sleep(15)
+
+        self.sendcmd("nvram_update_flag 0 1")
+        self.sendcmd("ss_server embeddedupgrade=%s" % filename)
+        self.sendcmd("nvram_update_flag 0 0")
+        self.reset()
+        time.sleep(15)
+
+    def reset(self):
+        return self.sendcmd("reset")
+
+
+class GEN3DeviceAdapter(BaseDeviceAdapter):
+    def __init__(self, moduleid, tcpport=None, logname=None, name=""):
+        self.moduleid = moduleid
+        self.tcpport = tcpport
+        self.logname = logname
+        self.name = name
+        self.conn = None
+
+    def __getattr__(self, name):
+        """
+        Check the calling method name:
+        If it is 'conn' or 'close', return self.conn or self.close; otherwise redirect it to self.conn
+        This is an implementation of <Proxy> design pattern
+        See <Proxy> design pattern for detail: http://www.oodesign.com/proxy-pattern.html
+        """
+        return getattr(self.conn, name)
+
+    def open(self):
+        if not self.tcpport:
+            self.tcpport = get_tcpport_not_in_use()
+
+        tcpport = int(self.tcpport)
+        logname = self.logname or tempfile.mkstemp()[1]
+        srv = SWAM3Server(self.moduleid, tcpport, None, logname)
+        srv.start()
+
+        self.conn = GEN3Connection(("127.0.0.1", tcpport), self.name)
+        self.conn.logname = logname
+        self.conn.open()
+
+    def close(self):
+        if self.conn:
+            logger.info("exit ss_server")
+            self.conn.sendcmd("ss_server exit", timeout=1.0)
+            self.conn.close()
+            self.conn = None
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s [%(levelname)-8s] - %(message)s'
+    )

@@ -1,0 +1,138 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import random
+import unittest
+from ctypes import byref
+from base import BaseBostonDriverTestCase
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+from simg.test.framework import parametrize
+
+
+@parametrize("tx_port", type=int, default=SII9777_TX_PORT__0)
+class TmdsEnableSetTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        self.__is_enabled = bool_t()
+        self.__tx_port = Sii9777TxPort_t(self.tx_port)
+        with self.device.lock:
+            Sii9777TmdsEnableGet(self.device.drv_instance, self.__tx_port, byref(self.__is_enabled))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777TmdsEnableSet(self.device.drv_instance, self.__tx_port, byref(self.__is_enabled))
+
+    def _test_Sii9777TmdsEnableSet(self, value):
+        if self.__is_enabled.value is value:
+            opposite = bool_t(not value)
+            with self.device.lock:
+                Sii9777TmdsEnableSet(self.device.drv_instance, self.__tx_port, byref(opposite))
+
+        expect_is_enabled = bool_t(value)
+        with self.device.lock:
+            retcode = Sii9777TmdsEnableSet(self.device.drv_instance, self.__tx_port, byref(expect_is_enabled))
+            self._test_api_retcode("Sii9777TmdsEnableSet", retcode)
+
+        actual_is_enabled = bool_t()
+        with self.device.lock:
+            retcode = Sii9777TmdsEnableGet(self.device.drv_instance, self.__tx_port, byref(actual_is_enabled))
+            self._test_api_retcode("Sii9777TmdsEnableGet", retcode)
+            self.assertEqual(actual_is_enabled.value, expect_is_enabled.value,
+                             msg="TMDS status should be %s" % expect_is_enabled.value)
+
+    def test_Sii9777TmdsEnableSet_ON(self):
+        self._test_Sii9777TmdsEnableSet(True)
+
+    def test_Sii9777TmdsEnableSet_OFF(self):
+        self._test_Sii9777TmdsEnableSet(False)
+
+
+@parametrize("tx_port", type=int, default=SII9777_TX_PORT__0)
+class AvMuteTestCase(BaseBostonDriverTestCase):
+    def _test_Sii9777AvMuteSet(self, value):
+        tx_port = Sii9777TxPort_t(self.tx_port)
+        if self.__is_enabled.value is value:
+            opposite = bool_t(not value)
+            with self.device.lock:
+                Sii9777AvMuteSet(self.device.drv_instance, tx_port, byref(opposite))
+
+        expect_is_muted = bool_t(value)
+        with self.device.lock:
+            retcode = Sii9777AvMuteSet(self.device.drv_instance, tx_port, byref(expect_is_muted))
+            self._test_api_retcode("Sii9777AvMuteSet", retcode)
+
+        actual_is_muted = bool_t()
+        with self.device.lock:
+            retcode = Sii9777AvMuteGet(self.device.drv_instance, tx_port, byref(actual_is_muted))
+            self._test_api_retcode("Sii9777AvMuteGet", retcode)
+            self.assertEqual(actual_is_muted.value, expect_is_muted.value,
+                             msg="TMDS status should be %s" % expect_is_muted.value)
+
+    def test_Sii9777AvMuteSet_ON(self):
+        self._test_Sii9777AvMuteSet(True)
+
+    def test_Sii9777AvMuteSet_OFF(self):
+        self._test_Sii9777AvMuteSet(False)
+
+
+@unittest.skip("not implemented")
+class TmdsSwingLevelTestCase(BaseBostonDriverTestCase):
+    """
+    Controls TMDS swing-level on output port. Please contact Silicon Image for specific values.
+    """
+    def test_Sii9777TmdsSwingLevelSet(self):
+        pass
+
+    def test_Sii9777TmdsSwingLevelGet(self):
+        pass
+
+
+@unittest.skip("not implemented")
+class TmdsPinSwapTestCase(BaseBostonDriverTestCase):
+    """
+    Configure output port pin alignment to be either connector oriented or SOC oriented.
+    """
+    def test_Sii9777TmdsPinSwapSet(self):
+        pass
+
+    def test_Sii9777TmdsPinSwapGet(self):
+        pass
+
+
+@parametrize("prim_tx_port", type=int, default=SII9777_TX_PORT__0)
+class PrimTxPortTestCase(BaseBostonDriverTestCase):
+    """
+    Controls which output is defined as primary output port.
+    Only the primary output allows HPD and EDID to be replicated to input port(s).
+    """
+    def setUp(self):
+        self.__old_prim_tx_port = Sii9777TxPort_t()
+        with self.device.lock:
+            Sii9777PrimTxPortGet(self.device.drv_instance, byref(self.__old_prim_tx_port))
+
+        if self.__old_prim_tx_port.value == self.prim_tx_port:
+            remain_tx_ports = [SII9777_TX_PORT__0, SII9777_TX_PORT__1, SII9777_TX_PORT__2]
+            remain_tx_ports.remove(self.prim_tx_port)
+            non_prim_tx_port = Sii9777TxPort_t(random.choice(remain_tx_ports))
+            logger.debug("current primary tx port is same with the setting value, change it another value %s" % non_prim_tx_port)
+            with self.device.lock:
+                Sii9777PrimTxPortSet(self.device.drv_instance, byref(non_prim_tx_port))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777PrimTxPortSet(self.device.drv_instance, byref(self.__old_prim_tx_port))
+
+    def test_Sii9777PrimTxPortSet(self):
+        expect_prim_tx_port = Sii9777TxPort_t(self.prim_tx_port)
+        with self.device.lock:
+            retcode = Sii9777PrimTxPortSet(self.device.drv_instance, byref(expect_prim_tx_port))
+            self._test_api_retcode("Sii9777PrimTxPortSet", retcode)
+
+        actual_prim_tx_port = Sii9777TxPort_t()
+        with self.device.lock:
+            self.Sii9777PrimTxPortGet(self.device.drv_instance, byref(actual_prim_tx_port))
+            self._test_api_retcode("Sii9777PrimTxPortGet", retcode)
+            self.assertEqual(actual_prim_tx_port.value, expect_prim_tx_port.value,
+                             msg="Primary TX port should be %s" % expect_prim_tx_port.value)

@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestSuite name="HDCP2.2 Transmitter Test">
+  <For list="TestItem" type="xpath" param="item">
+    <TestCase name="test_transmitter_%(item)s" class="cases.wired.test_hdcp22.HDCPTestCase" method="test_transmitter">
+      <Attribute name="interface" value="HDMI" />
+      <Attribute name="dut" value="transmitter" />
+      <Attribute name="item" value="%(item)s" />
+    </TestCase>
+  </For>
+  <TestItem>1A-01</TestItem>
+  <TestItem>1A-02</TestItem>
+  <TestItem>1A-03</TestItem>
+  <TestItem>1A-04</TestItem>
+  <TestItem>1A-05</TestItem>
+  <TestItem>1A-06</TestItem>
+  <TestItem>1A-07</TestItem>
+  <TestItem>1A-08</TestItem>
+  <TestItem>1A-09</TestItem>
+  <TestItem>1A-11T1</TestItem>
+  <TestItem>1A-11T2</TestItem>
+  <TestItem>1A-11T3</TestItem>
+  <TestItem>1A-13T1</TestItem>
+  <TestItem>1A-13T2</TestItem>
+  <TestItem>1B-01</TestItem>
+  <TestItem>1B-02</TestItem>
+  <TestItem>1B-03</TestItem>
+  <TestItem>1B-04</TestItem>
+  <TestItem>1B-05</TestItem>
+  <TestItem>1B-06</TestItem>
+  <TestItem>1B-07</TestItem>
+  <TestItem>1B-08</TestItem>
+  <TestItem>1B-09</TestItem>
+  <TestItem>1B-10T0</TestItem>
+  <TestItem>1B-10T1</TestItem>
+</TestSuite>

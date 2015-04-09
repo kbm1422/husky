@@ -1,0 +1,345 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import time
+import threading
+import ctypes
+from abc import ABCMeta
+
+from simg.pattern.observer import BaseSubject, BaseListener
+from simg.devadapter import BaseDeviceAdapter, DeviceAdapterError, DeviceEndType
+from simg.devadapter.logsubject import SerialLogSubject
+
+from api import *
+
+
+class AdapterMode(object):
+    DRIVER = "DRIVER"
+    HOST = "HOST"
+
+
+class RogueDeviceAdapterFactory(object):
+    @classmethod
+    def new_rogue_device_adapter(cls, **kwargs):
+        mode = kwargs.pop("mode").upper()
+        if mode == AdapterMode.DRIVER:
+            adapt_cls = RogueDrvAdapter
+            if "host_comport" in kwargs:
+                kwargs.pop("host_comport")
+        elif mode == AdapterMode.HOST:
+            if "blackbox_number" in kwargs:
+                kwargs.pop("blackbox_number")
+            if "blackbox_comport" in kwargs:
+                kwargs.pop("blackbox_comport")
+            adapt_cls = RogueHostAdapter
+        else:
+            raise ValueError("Unsupported Rogue AdapterMode: %s" % mode)
+        return adapt_cls(**kwargs)
+
+
+class LinkType(object):
+    HDMI = SII_DRV_LINK_HDMI
+    MHL12 = SII_DRV_LINK_MHL12
+    MHL3 = SII_DRV_LINK_MHL3
+
+    mapper = {"HDMI": HDMI,
+              "MHL12": MHL12,
+              "MHL3": MHL3}
+
+
+class RogueDrvAdapter(BaseDeviceAdapter):
+    def __init__(self, blackbox_number, blackbox_comport, **kwargs):
+        super(RogueDrvAdapter, self).__init__(**kwargs)
+        self.blackbox_number = blackbox_number
+        self.blackbox_comport = blackbox_comport
+        self.sii_instance = None
+        self.__thread = None
+        self.__should_stop = threading.Event()
+        self.evt_subject = RogueDrvEventSubject()
+        self.log_subject = SerialLogSubject(blackbox_comport, 19200)
+
+    @property
+    def end_type(self):
+        if self.id == 0x9678:
+            return DeviceEndType.SOURCE
+        elif self.id == 0x9679:
+            return DeviceEndType.SINK
+        elif self.id == 0x9394:
+            return DeviceEndType.DONGLE
+        else:
+            raise ValueError
+
+    def open(self):
+        mapper = {SII_DRV_LINK_HDMI: "SII_DRV_LINK_HDMI",
+                  SII_DRV_LINK_MHL12: "SII_DRV_LINK_MHL12",
+                  SII_DRV_LINK_MHL3: "SII_DRV_LINK_MHL3"}
+
+        self.log_subject.open()
+        if self.id == 0x9678:
+            with self.log_subject.listen("TX HDCP ON") as log_listener:
+                self.open_chip()
+                if log_listener.get(timeout=30) is None:
+                    self.close_chip()
+                    raise Exception("Can't get 'TX HDCP ON' in 30s")
+        else:
+            with self.log_subject.listen("AVI INFO recv") as log_listener:
+                with self.evt_subject.listen(SII_DRV_ADAPT_EVENT__VBUS_REQUEST) as evt_listener:
+                    self.open_chip()
+                    if self.us_linktype in (LinkType.MHL12,  LinkType.MHL3):
+                        logger.debug("Upstream link type is %s, do SiiDrvAdaptCbusPowSet", mapper[self.us_linktype])
+                        event = evt_listener.get(timeout=30)
+                        if event is None:
+                            self.close_chip()
+                            raise ValueError("Can't get event 'SII_DRV_ADAPT_EVENT__VBUS_REQUEST' in 10s")
+
+                        vbus_power_request = SiiDrvAdaptVbusReq_t()
+                        SiiDrvAdaptVbusRequestGet(self.sii_instance, ctypes.byref(vbus_power_request))
+                        logger.debug("vbus_power_request: %s", vbus_power_request)
+                        if vbus_power_request.value == SII_DRV_ADAPT_VBUS_REQ__PROVIDE_POWER:
+                            gpio_power = bool_t(True)
+                            SiiDrvAdaptChipGpioCtrl(self.sii_instance, 3, gpio_power)
+                            SiiDrvAdaptVbusRequestGrant(self.sii_instance)
+                            SiiDrvAdaptVbusRequestGet(self.sii_instance, ctypes.byref(vbus_power_request))
+                            cubs_power = SiiDrvAdaptPow_t(0)
+                            SiiDrvAdaptCbusPowSet(self.sii_instance, cubs_power)
+                    else:
+                        logger.debug("Upstream link type is %s, skip SiiDrvAdaptCbusPowSet", mapper[self.us_linktype])
+
+                if log_listener.get(timeout=30) is None:
+                    self.close_chip()
+                    raise Exception("Can't get 'AVI INFO recv' in 30s")
+
+    def close(self):
+        self.close_chip()
+        self.log_subject.close()
+
+    def open_chip(self):
+        self.__should_stop.clear()
+        self.__thread = threading.Thread(target=self.__init_rogue_and_get_interrupt_for_ever)
+        # case using runner name to collect to log, if not set the runner sub-thread name same as the runner name.
+        # the sub-thread's log will not be add into case log file
+        self.__thread.name = threading.current_thread().name
+        self.__thread.start()
+
+    def close_chip(self):
+        self.__should_stop.set()
+        if self.__thread is not None:
+            self.__thread.join()
+            self.__thread = None
+
+    def __init_rogue_and_get_interrupt_for_ever(self):
+        """
+        must put rogue initinalize and get interrupt in same thread, otherwise, it will cause access violation reading
+        """
+        ADAPT_DEFAULT_I2C_DEVICE_ID = 0x70
+        SPI_ERASE_COMMAND = 0xD8
+        SPI_WRITE_ENABLE_COMMAND = 0x06
+        SPI_PAGE_WRITE_COMMAND = 0x02
+
+        if not Platform_Create():
+            raise DeviceAdapterError("Init BlackBox Failed!!!!")
+
+        SiiPlatformInit()
+        time.sleep(0.5)
+
+        while not SiiHalGetInt1Flag():
+            time.sleep(0.1)
+
+        func = SiiLibEvtCbFunc_t(self.evt_subject.event_callback)
+        self.sii_instance = SiiDrvAdaptCreate(0, 1, func)
+        if not self.sii_instance:
+            raise DeviceAdapterError("Call driver api SiiDrvAdaptCreate failed!!!")
+
+        adapt_config = SiiDrvAdaptConfig_t()
+        if self.id == 0x9678:
+            adapt_config.platformId = SII_DRV_ADAPT_PLATFORM__SII9678
+            ADAPT_DEFAULT_I2C_DEVICE_ID = 0x60
+        elif self.id == 0x9679:
+            adapt_config.platformId = SII_DRV_ADAPT_PLATFORM__SII9679
+        elif self.id == 0x9394:
+            adapt_config.platformId = SII_DRV_ADAPT_PLATFORM__AVR
+        else:
+            raise ValueError("Unsupported platform %s" % hex(self.id))
+        adapt_config.i2cSlaveAddr = ADAPT_DEFAULT_I2C_DEVICE_ID
+        adapt_config.i2cSlaveAddrBase = SII_DRV_ADAPT_DEFAULT_I2C_DEVICE_ID_BASE
+        adapt_config.i2cSlaveAddrF0 = 0
+        adapt_config.i2cSlaveAddrAA = 0
+        adapt_config.interruptPinType = SII_DRV_ADAPTER_INT__OPENDRAIN
+        adapt_config.interruptPolarity = SII_DRV_ADAPTER_INT__POL_LOW
+        adapt_config.spiConfig.eraseCmd = SPI_ERASE_COMMAND
+        adapt_config.spiConfig.writeEnCmd = SPI_WRITE_ENABLE_COMMAND
+        adapt_config.spiConfig.pageWrCmd = SPI_PAGE_WRITE_COMMAND
+
+        SiiDrvAdaptConfigure(self.sii_instance, ctypes.byref(adapt_config))
+
+        if self.id == 0x9678:
+            state = SiiDrvAdaptHdcpProtect_t(SII_DRV_ADAPTER_HDCP_PROTECT__ON)
+            SiiDrvAdaptTxHdcpProtectionSet(self.sii_instance, state)
+            content_type = SiiDrvAdaptHdcpContenrType_t(SII_DRV_ADAPTER_HDCP_CONTENT__TYPE0)
+            SiiDrvAdaptTxHdcpContentTypeSet(self.sii_instance, content_type)
+
+        SiiDrvAdaptStart(self.sii_instance)
+
+        while not self.__should_stop.is_set():
+            if SiiHalGetInt1Flag():
+                if SiiHalGetInterrupt1:
+                    SiiDrvAdaptTaskExecute(self.sii_instance)
+                else:
+                    SiiHalSetInt1Flag(bool_t(False))
+
+        SiiDrvAdaptStop(self.sii_instance)
+        SiiDrvAdaptDelete(self.sii_instance)
+
+        time.sleep(0.5)
+        SiiPlatformDestroy()
+        Platform_Destroy()
+
+
+drv_event_mapper = {
+    SII_DRV_ADAPT_EVENT__BOOT_DONE: "SII_DRV_ADAPT_EVENT__BOOT_DONE",                                   # 1
+    SII_DRV_ADAPT_EVENT__ACCESS_DONE: "SII_DRV_ADAPT_EVENT__ACCESS_DONE",                               # 2
+    SII_DRV_ADAPT_EVENT__TX_HDCP_STATUS_CHNG: "SII_DRV_ADAPT_EVENT__TX_HDCP_STATUS_CHNG",               # 4
+    SII_DRV_ADAPT_HDCP_EVENT__TX_STATUS_CHG: "SII_DRV_ADAPT_HDCP_EVENT__TX_STATUS_CHG",                 # 8
+    SII_DRV_ADAPT_EVENT__SCDT_STATUS_CHNG: "SII_DRV_ADAPT_EVENT__SCDT_STATUS_CHNG",                     # 16
+    SII_DRV_ADAPT_EVENT__RX_AV_MUTE_STATUS_CHNG: "SII_DRV_ADAPT_EVENT__RX_AV_MUTE_STATUS_CHNG",         # 32
+    SII_DRV_ADAPT_EVENT__RX_PLUS_5V_STATUS_CHNG: "SII_DRV_ADAPT_EVENT__RX_PLUS_5V_STATUS_CHNG",         # 64
+    SII_DRV_ADAPT_EVENT__DS_CONNECT_STATUS_CHNG_ON: "SII_DRV_ADAPT_EVENT__DS_CONNECT_STATUS_CHNG_ON",   # 128
+    SII_DRV_ADAPT_EVENT__DS_EDID_STATUS_CHNG: "SII_DRV_ADAPT_EVENT__DS_EDID_STATUS_CHNG",               # 256
+    SII_DRV_ADAPT_EVENT__DS_CONNECT_STATUS_CHNG_OFF: "SII_DRV_ADAPT_EVENT__DS_CONNECT_STATUS_CHNG_OFF", # 512
+    SII_DRV_ADAPT_EVENT__VBUS_REQUEST: "SII_DRV_ADAPT_EVENT__VBUS_REQUEST",                             # 1024
+    SII_DRV_ADAPT_EVENT__CBUS_EVENT: "SII_DRV_ADAPT_EVENT__CBUS_EVENT",                                 # 2048
+    SII_DRV_ADAPT_EVENT__CBUS_STATE_CHNG: "SII_DRV_ADAPT_EVENT__CBUS_STATE_CHNG",                       # 4096
+    SII_DRV_ADAPT_EVENT__RX_HDCP_STATUS_CHNG: "SII_DRV_ADAPT_EVENT__RX_HDCP_STATUS_CHNG",               # 8192
+    SII_DRV_ADAPT_EVENT__RX_CD_SENSE_STATUS_CHG: "SII_DRV_ADAPT_EVENT__RX_CD_SENSE_STATUS_CHG",         # 16384
+    SII_DRV_ADAPT_EVENT__US_CONNECT_STATUS_CHNG: "SII_DRV_ADAPT_EVENT__US_CONNECT_STATUS_CHNG",         # 32768
+    SII_DRV_ADAPT_EVENT__MHL_VER_CHNG: "SII_DRV_ADAPT_EVENT__MHL_VER_CHNG",                             # 65536
+    SII_DRV_ADAPT_EVENT__CBUS_MODE_CHNG: "SII_DRV_ADAPT_EVENT__CBUS_MODE_CHNG",                         # 131072
+    SII_DRV_ADAPT_EVENT__RX_SENSE_STATUS_CHNG: "SII_DRV_ADAPT_EVENT__RX_SENSE_STATUS_CHNG",             # 262144
+}
+
+
+class RogueDrvEventListener(BaseListener):
+    def __repr__(self):
+        return "<%s %s(%s)>" % (self.__class__.__name__, drv_event_mapper[self.keyword], self.keyword)
+
+
+class RogueDrvEventSubject(BaseSubject):
+    Listener = RogueDrvEventListener
+
+    def __init__(self):
+        super(RogueDrvEventSubject, self).__init__()
+
+    def __notify(self, etype, flag):
+        logger.debug("RECV EVENT: %s", drv_event_mapper[etype])
+        for listener in self._listeners:
+            if listener.keyword == etype:
+                listener.queue.put(flag)
+
+    def event_callback(self, sii_instance, address):
+        events = SiiDrvAdaptEvents_t()
+        ctypes.memmove(ctypes.byref(events), address, ctypes.sizeof(SiiDrvAdaptEvents_t))
+        if events.GeneralEvents:
+            self.__handle_general_event(events.GeneralEvents)
+
+        if events.TxEvents:
+            self.__handle_tx_event(events.TxEvents)
+
+        if events.RxEvents:
+            self.__handle_rx_event(events.RxEvents)
+
+        if events.HdcpEvents:
+            self.__handle_hdcp_event(events.HdcpEvents)
+
+        if events.CbusEvents:
+            self.__handle_cbus_event(events.CbusEvents)
+
+        if events.CecEvents:
+            self.__handle_cec_event(events.CecEvents)
+
+        if events.EdidEvents:
+            self.__handle_edid_event(events.EdidEvents)
+
+    def __handle_general_event(self, flag):
+        if flag & SII_DRV_ADAPT_EVENT__BOOT_DONE:
+            self.__notify(SII_DRV_ADAPT_EVENT__BOOT_DONE, flag)
+
+        if flag & SII_DRV_ADAPT_EVENT__ACCESS_DONE:
+            self.__notify(SII_DRV_ADAPT_EVENT__ACCESS_DONE, flag)
+
+        if flag & SII_DRV_ADAPT_EVENT__SCDT_STATUS_CHNG:
+            self.__notify(SII_DRV_ADAPT_EVENT__SCDT_STATUS_CHNG, flag)
+
+        if flag & SII_DRV_ADAPT_EVENT__CKDT_STATUS_CHNG:
+            self.__notify(SII_DRV_ADAPT_EVENT__CKDT_STATUS_CHNG, flag)
+
+        if flag & SII_DRV_ADAPT_EVENT__RX_CD_SENSE_STATUS_CHG:
+            self.__notify(SII_DRV_ADAPT_EVENT__RX_CD_SENSE_STATUS_CHG, flag)
+
+        if flag & (SII_DRV_ADAPT_EVENT__VBUS_REQUEST | SII_DRV_ADAPT_EVENT__CBUS_EVENT | SII_DRV_ADAPT_EVENT__CBUS_STATE_CHNG):
+            self.__handle_mhl_event(flag)
+
+    def __handle_tx_event(self, flag):
+        if flag & SII_DRV_ADAPT_EVENT__DS_CONNECT_STATUS_CHNG_ON:
+            self.__notify(SII_DRV_ADAPT_EVENT__DS_CONNECT_STATUS_CHNG_ON, flag)
+        if flag & SII_DRV_ADAPT_EVENT__DS_CONNECT_STATUS_CHNG_OFF:
+            self.__notify(SII_DRV_ADAPT_EVENT__DS_CONNECT_STATUS_CHNG_OFF, flag)
+
+    def __handle_rx_event(self, flag):
+        if flag & SII_DRV_ADAPT_EVENT__RX_HDCP_STATUS_CHNG:
+            self.__notify(SII_DRV_ADAPT_EVENT__RX_HDCP_STATUS_CHNG, flag)
+
+        if flag & SII_DRV_ADAPT_EVENT__US_CONNECT_STATUS_CHNG:
+            self.__notify(SII_DRV_ADAPT_EVENT__US_CONNECT_STATUS_CHNG, flag)
+
+        if flag & SII_DRV_ADAPT_EVENT__RX_AV_MUTE_STATUS_CHNG:
+            self.__notify(SII_DRV_ADAPT_EVENT__RX_AV_MUTE_STATUS_CHNG, flag)
+
+    def __handle_hdcp_event(self, flag):
+        if flag & SII_DRV_ADAPT_HDCP_EVENT__TX_STATUS_CHG:
+            self.__notify(SII_DRV_ADAPT_HDCP_EVENT__TX_STATUS_CHG, flag)
+
+    def __handle_mhl_event(self, flag):
+        if flag & SII_DRV_ADAPT_EVENT__VBUS_REQUEST:
+            self.__notify(SII_DRV_ADAPT_EVENT__VBUS_REQUEST, flag)
+
+        if flag & SII_DRV_ADAPT_EVENT__CBUS_EVENT:
+            self.__notify(SII_DRV_ADAPT_EVENT__CBUS_EVENT, flag)
+
+        if flag & SII_DRV_ADAPT_EVENT__CBUS_STATE_CHNG:
+            self.__notify(SII_DRV_ADAPT_EVENT__CBUS_STATE_CHNG, flag)
+
+    def __handle_cec_event(self, flag):
+        pass
+
+    def __handle_edid_event(self, flag):
+        if flag & SII_DRV_ADAPT_EVENT__DS_EDID_STATUS_CHNG:
+            self.__notify(SII_DRV_ADAPT_EVENT__DS_EDID_STATUS_CHNG, flag)
+
+    def __handle_cbus_event(self, flag):
+        if flag & SII_DRV_ADAPT_EVENT__MHL_VER_CHNG:
+            self.__notify(SII_DRV_ADAPT_EVENT__MHL_VER_CHNG, flag)
+
+        if flag & SII_DRV_ADAPT_EVENT__CBUS_MODE_CHNG:
+            self.__notify(SII_DRV_ADAPT_EVENT__CBUS_MODE_CHNG, flag)
+
+
+class RogueHostAdapter(BaseDeviceAdapter):
+    def __init__(self, host_comport, **kwargs):
+        super(RogueHostAdapter, self).__init__(**kwargs)
+        self.log_subject = SerialLogSubject(host_comport, 57600)
+
+    def open(self):
+        self.log_subject.open()
+
+    def close(self):
+        self.log_subject.close()
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s - %(thread)-5d [%(levelname)-8s] - %(message)s',
+    )

@@ -1,0 +1,142 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+from ctypes import byref
+from simg.test.framework import parametrize, LinkedTestCase
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+from base import BaseBostonDriverTestCase, RX_PORT_MAPPER
+
+
+@parametrize("rx_port", type=str, choice=RX_PORT_MAPPER.keys())
+class EdidDdcTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777EdidDdcSet and Sii9777EdidDdcGet when pbDdc set to True.
+    Steps:
+        1. setUp: Invoke Sii9777EdidDdcGet to get initial pbDdc and port.
+        2. Set RX port(port0, port1, port2, port3) from xml and set pbDdc to True, call Sii9777EdidDdcSet.
+           Check point: return code of Sii9777EdidDdcSet.
+        3. Get the current RX port and pbDdc by invoking Sii9777EdidDdcGet.
+           Check point: a) return code of Sii9777EdidDdcGet.
+                        b) pbDdc.value should be True.
+        4. tearDown: Invoke Sii9777EdidDdcSet to set back the value of initial pbDdc and port.
+    """
+
+    def setUp(self):
+        self.__pbDdc = bool_t()
+        self.__rx_port = Sii9777RxPort_t()
+        with self.device.lock:
+            Sii9777EdidDdcGet(self.device.drv_instance, self.__rx_port, byref(self.__pbDdc))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777EdidDdcSet(self.device.drv_instance, self.__rx_port, byref(self.__pbDdc))
+
+    def test_Sii9777EdidDdcSet_ON(self):
+        expect_pbDdc = bool_t(True)
+        rx_port = Sii9777RxPort_t(RX_PORT_MAPPER[self.rx_port])
+        with self.device.lock:
+            retcode_set = Sii9777EdidDdcSet(self.device.drv_instance, rx_port, byref(expect_pbDdc))
+        self._test_api_retcode("Sii9777EdidDdcSet", retcode_set)
+
+        actual_pbDdc = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777EdidDdcGet(self.device.drv_instance, rx_port, byref(actual_pbDdc))
+        self._test_api_retcode("Sii9777EdidDdcGet", retcode_get)
+        self.assertTrue(actual_pbDdc.value, "The expect pbDdc should be True")
+
+    def test_Sii9777EdidDdcSet_OFF(self):
+        expect_pbDdc = bool_t(False)
+        rx_port = Sii9777RxPort_t(RX_PORT_MAPPER[self.rx_port])
+        with self.device.lock:
+            retcode_set = Sii9777EdidDdcSet(self.device.drv_instance, rx_port, byref(expect_pbDdc))
+        self._test_api_retcode("Sii9777EdidDdcSet", retcode_set)
+
+        actual_pbDdc = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777EdidDdcGet(self.device.drv_instance, rx_port, byref(actual_pbDdc))
+        self._test_api_retcode("Sii9777EdidDdcGet", retcode_get)
+        self.assertFalse(actual_pbDdc.value, "The expect pbDdc should be False")
+
+
+@parametrize("offset", type=int, default=0)
+@parametrize("length", type=int, default=256)
+class EdidTestCase(LinkedTestCase, BaseBostonDriverTestCase):
+    """
+    Steps:
+    1. get edid and save it: Sii9777EdidQuery
+    2. get downstream device's edid
+    2. set replicate enable: Sii9777EdidReplicateEnableSet
+    3. query edid and verify it should match with step2
+    4. set replicate disable: Sii9777EdidReplicateEnableSet
+    5. set edid saved in step1: Sii9777EdidSet
+    6. get edid and verify it with step1
+    """
+
+    methodNames = ("test_Sii9777EdidReplicateEnableSet_ON",
+                   "test_Sii9777EdidReplicateEnableSet_OFF",
+                   "test_Sii9777EdidSet",
+                   "test_Sii9777EdidGet")
+
+    def setUp(self):
+        self.__golden_edids = []
+        for rx_port in range(4):
+            self.__golden_edids.append(self.device.get_edid(rx_port))
+
+    def tearDown(self):
+        pass
+
+    def test_Sii9777EdidReplicateEnableSet_ON(self):
+        pbOn = bool_t(True)
+        with self.device.lock:
+            retcode = Sii9777EdidReplicateEnableSet(self.device.drv_instance, byref(pbOn))
+            self._test_api_retcode("Sii9777EdidReplicateEnableSet", retcode)
+
+        for rx_port in range(4):
+            edid = self.device.get_edid(rx_port)
+            self.assertNotEqual(edid, self.__golden_edids[rx_port],
+                                "SII9777_RX_PORT__%s EDID should different after Sii9777EdidReplicateEnableSet_ON" % rx_port)
+        self._warn("TODO: add checkpoint to verify the edid same with the downstream edid")
+
+    def test_Sii9777EdidReplicateEnableSet_OFF(self):
+        pbOn = bool_t(False)
+        with self.device.lock:
+            retcode = Sii9777EdidReplicateEnableSet(self.device.drv_instance, byref(pbOn))
+            self._test_api_retcode("Sii9777EdidReplicateEnableSet", retcode)
+
+        pbOn = bool_t()
+        with self.device.lock:
+            retcode = Sii9777EdidReplicateEnableGet(self.device.drv_instance, byref(pbOn))
+            self._test_api_retcode("Sii9777EdidReplicateEnableGet", retcode)
+        self.assertFalse(pbOn.value, "EdidReplicateEnabled should be False.")
+
+    def test_Sii9777EdidSet(self):
+        for rx_port in range(4):
+            with self.device.lock:
+                retcode = Sii9777EdidSet(self.device.drv_instance,
+                                         Sii9777RxPort_t(rx_port),
+                                         uint16_t(self.offset),
+                                         self.device.convert_edid_list2ubytes(self.__golden_edids[rx_port]),
+                                         self.length)
+                self.assertEqual(retcode, 0,
+                                 "Sii9777EdidSet SII9777_RX_PORT__%s return code should be 0" % rx_port)
+
+    def test_Sii9777EdidGet(self):
+        for rx_port in range(4):
+            pData = (uint8_t * self.length)()
+            with self.device.lock:
+                retcode = Sii9777EdidGet(self.device.drv_instance,
+                                         Sii9777RxPort_t(rx_port),
+                                         uint16_t(self.offset),
+                                         pData,
+                                         self.length)
+                self.assertEqual(retcode, 0,
+                                 "Sii9777EdidGet SII9777_RX_PORT__%s return code should be 0" % rx_port)
+            logger.debug("SII9777_RX_PORT__%s edid: %s", rx_port, ["0x%02x" % pData[index] for index in range(self.length)])
+            logger.debug("SII9777_RX_PORT__%s golden edid: %s", rx_port, self.__golden_edids[rx_port])
+            logger.debug("SII9777_RX_PORT__%s actual edid: %s", rx_port, self.device.convert_edid_ubytes2list(pData))
+            self.assertSequenceEqual(self.device.convert_edid_ubytes2list(pData), self.__golden_edids[rx_port],
+                                     "SII9777_RX_PORT__%s EDID should same after Sii9777EdidSet" % rx_port)
+

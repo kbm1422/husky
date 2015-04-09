@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<TestSuite name="Boston Driver RX EDID Test Suite">
+    <For list="range(4)" type="expression" param="rx_port_number">
+        <TestCase name="Sii9777EdidDdcSet, Sii9777EdidDdcGet(ON) RX_PORT__%(rx_port_number)s" class="cases.wired.boston.test_drv_rx_edid.EdidDdcTestCase" method="test_Sii9777EdidDdcSet_ON">
+            <Attribute name="device" value="%(device)s"/>
+            <Attribute name="rx_port" value="SII9777_RX_PORT__%(rx_port_number)s"/>
+        </TestCase>
+        <TestCase name="Sii9777EdidDdcSet, Sii9777EdidDdcGet(OFF) RX_PORT__%(rx_port_number)s" class="cases.wired.boston.test_drv_rx_edid.EdidDdcTestCase" method="test_Sii9777EdidDdcSet_OFF">
+            <Attribute name="device" value="%(device)s"/>
+            <Attribute name="rx_port" value="SII9777_RX_PORT__%(rx_port_number)s"/>
+        </TestCase>
+    </For>
+
+    <LinkedTestCase name="Sii9777EdidReplicateEnableSet, Sii9777EdidReplicateEnableGet, Sii9777EdidSet, Sii9777EdidGet" class="cases.wired.boston.test_drv_rx_edid.EdidTestCase">
+        <Attribute name="device" value="%(device)s"/>
+    </LinkedTestCase>
+</TestSuite>

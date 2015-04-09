@@ -1,0 +1,85 @@
+<?xml version="1.0" ?>
+<TestSuite name="Boston Driver RX MHL Common Test Suite">
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.RxCdSenseQueryTestCase" method="test_Sii9777RxCdSenseQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="expect_cd_sense" value="SII9777_CD_SENSE__MHL_CABLE"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.CbusBurstSendReceiveTestCase" method="test_CbusBurstSendReceive">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.CbusEventQueryTestCase" method="test_Sii9777CbusEventQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.CbusMscMsgSendReceiveTestCase" method="test_Sii9777CbusMscMsgSendReceive">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.VbusRequestGrantQueryTestCase" method="test_SII9777_VBUS_REQ__NONE">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <LinkedTestCase class="cases.wired.boston.test_drv_rx_mhl.CbusLocalDevCapTestCase">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="peer_device" value="%(peer_device)s"/>
+    </LinkedTestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.CbusRemoteDevcapQueryTestCase" method="test_CbusRemoteDevcapQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="peer_device" value="%(peer_device)s"/>
+    </TestCase>
+
+    <LinkedTestCase name="Sii9777CbusLocalDevcapPowSet, Sii9777CbusLocalDevcapPowGet(SII9777_VBUS_REMOVE_POWER, SII9777_VBUS_PROVIDE_POWER)" class="cases.wired.boston.test_drv_rx_mhl.CbusLocalDevcapPowTestCase">
+        <Attribute name="device" value="%(device)s"/>
+    </LinkedTestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.CbusLocalDevcapVideoLinkModeTestCase" method="test_golden_local_devcap_video_link_mode">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <For list="['SII9777_DEVCAP_VID_LINK_MODE__SUPP_NONE', 'SII9777_DEVCAP_VID_LINK_MODE__SUPP_RGB444', 'SII9777_DEVCAP_VID_LINK_MODE__SUPP_YCBCR444', 'SII9777_DEVCAP_VID_LINK_MODE__SUPP_YCBCR422', 'SII9777_DEVCAP_VID_LINK_MODE__SUPP_PPIXEL', 'SII9777_DEVCAP_VID_LINK_MODE__SUPP_ISLANDS', 'SII9777_DEVCAP_VID_LINK_MODE__SUPP_VGA']"
+         type="expression"
+         param="vid_link_mode">
+        <TestCase name="test_Sii9777CbusLocalDevcapVideoLinkModeSet_%(vid_link_mode)s" class="cases.wired.boston.test_drv_rx_mhl.CbusLocalDevcapVideoLinkModeTestCase" method="test_Sii9777CbusLocalDevcapVideoLinkModeSet">
+            <Attribute name="device" value="%(device)s"/>
+            <Attribute name="vid_link_mode" value="%(vid_link_mode)s"/>
+        </TestCase>
+    </For>
+
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.CbusLocalDevcapAudioLinkModeTestCase" method="test_golden_local_devcap_audio_link_mode">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <For list="['SII9777_DEVCAP_AUD_LINK_MODE__NONE', 'SII9777_DEVCAP_AUD_LINK_MODE__AUD_2CH', 'SII9777_DEVCAP_AUD_LINK_MODE__AUD_8CH']"
+         type="expression"
+         param="aud_link_mode">
+        <TestCase name="test_Sii9777CbusLocalDevcapAudioLinkModeSet_%(aud_link_mode)s" class="cases.wired.boston.test_drv_rx_mhl.CbusLocalDevcapAudioLinkModeTestCase" method="test_Sii9777CbusLocalDevcapAudioLinkModeSet">
+            <Attribute name="device" value="%(device)s"/>
+            <Attribute name="aud_link_mode" value="%(aud_link_mode)s"/>
+        </TestCase>
+    </For>
+
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.CbusLocalDevcapFeatureFlagTestCase" method="test_golden_local_devcap_feature_flag">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <For list="['SII9777_DEVCAP_FEATURE_FLAG__NONE', 'SII9777_DEVCAP_FEATURE_FLAG__RCP_SUPPORT', 'SII9777_DEVCAP_FEATURE_FLAG__RAP_SUPPORT', 'SII9777_DEVCAP_FEATURE_FLAG__SP_SUPPORT', 'SII9777_DEVCAP_FEATURE_FLAG__UCP_SEND_SUPPORT', 'SII9777_DEVCAP_FEATURE_FLAG__UCP_RCVD_SUPPORT', 'SII9777_DEVCAP_FEATURE_FLAG__XVYCC_SUPPORT', 'SII9777_DEVCAP_FEATURE_FLAG__RBP_SUPPORT']"
+         type="expression"
+         param="feature_flag">
+        <TestCase name="test_Sii9777CbusLocalDevcapFeatureFlagSet_%(feature_flag)s" class="cases.wired.boston.test_drv_rx_mhl.CbusLocalDevcapFeatureFlagTestCase" method="test_Sii9777CbusLocalDevcapFeatureFlagSet">
+            <Attribute name="device" value="%(device)s"/>
+            <Attribute name="feature_flag" value="%(feature_flag)s"/>
+        </TestCase>
+    </For>
+
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.CbusLocalDevcapVideoTypeTestCase" method="test_golden_local_devcap_video_type">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <For list="['SII9777_DEVCAP_VIDEO_TYPE__NONE', 'SII9777_DEVCAP_VIDEO_TYPE__VT_GRAPHICS', 'SII9777_DEVCAP_VIDEO_TYPE__VT_PHOTO', 'SII9777_DEVCAP_VIDEO_TYPE__VT_CINEMA', 'SII9777_DEVCAP_VIDEO_TYPE__VT_GAME', 'SII9777_DEVCAP_VIDEO_TYPE__SUPP_VT']"
+         type="expression"
+         param="video_type">
+        <TestCase name="test_Sii9777CbusLocalDevcapVideoTypeSet_%(video_type)s" class="cases.wired.boston.test_drv_rx_mhl.CbusLocalDevcapVideoTypeTestCase" method="test_Sii9777CbusLocalDevcapVideoTypeSet">
+            <Attribute name="device" value="%(device)s"/>
+            <Attribute name="video_type" value="%(video_type)s"/>
+        </TestCase>
+    </For>
+</TestSuite>

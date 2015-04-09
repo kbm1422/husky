@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+
+import os
+import time
+import re
+
+class UTS800(object):
+    class MHLTYPE(object):
+        MHL2 = "MHL2"
+        MHL3 = "MHL3"
+    
+    @classmethod
+    def new_mhl(cls, **kwargs):
+        mhl_type = kwargs.pop("type").upper()
+        if mhl_type == UTS800.MHLTYPE.MHL2:
+            return mhl2(**kwargs)
+        elif mhl_type == UTS800.MHLTYPE.MHL3:
+            return mhl3(**kwargs)
+        else:
+            raise ValueError("Unsupported MHL type: %s" % mhl_type)
+
+
+class mhl2(object):
+    def __init__(self,cdf_path):
+        self.cdf_path = cdf_path
+
+    def test_mhl2_part1(self):
+        exe_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mhl2_cts_part1", "CBusConsole.exe")
+        cmd = exe_path +" "+self.cdf_path
+        f = open("run.bat",'w')
+        f.write('cd\\\n')
+        f.write('cd C:\husky\lib\simg\util\uts800\MHL2_CTS_PART1\n')
+        f.write(exe_path +" "+self.cdf_path+ ' \n')
+        f.close()
+        time.sleep(3)
+        res = os.system("run.bat")
+        print str(res)
+        if res == 0:
+            return res
+        else:
+            return -1
+        
+    def test_mhl2_part2(self):
+        pass
+
+
+class mhl3(object):
+    def __init__(self,cdf_path,test_list):
+        self.cdf_path = cdf_path
+        self.test_list = test_list
+        
+    def test_mhl3_part1(self):
+        exe_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mhl3_cts_part1", "TestApplicationCMD.exe")
+        result = os.path.dirname(self.cdf_path)+ "\\result.txt"
+        #print "result =" + result
+        cmd = exe_path +" "+self.cdf_path +" " +self.test_list + " >" +result
+        res = os.system(cmd)
+        time.sleep(3)
+        f = open(result,'r')
+        lines = f.readlines()
+        actual_result = "FAIL"
+        for line in lines:
+            line = line.strip()
+            if line:
+                print line
+            if re.search("----Result: Pass",line,re.I):
+                actual_result = "PASS"
+                break
+        f.close
+        return actual_result
+
+
+
+    def test_mhl3_part2(self):
+        pass
+
+        
+if __name__ == "__main__":
+    cts = mhl3(r"C:\husky\lib\simg\util\uts800\CDF_Rogue_Sink.ini",r"C:\husky\lib\simg\util\uts800\6_3.xml")
+    cts.test_mhl3_part1()

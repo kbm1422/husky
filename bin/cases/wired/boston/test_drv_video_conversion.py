@@ -1,0 +1,149 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+from ctypes import byref
+from base import BaseBostonDriverTestCase
+from simg.test.framework import parametrize, skip, TestContextManager
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+
+
+PIXEL_FORMAT_MAPPER = {
+    "YCbCr422BT709": (SII9777_CLR_FMT__YC709_F, SII9777_CR_SMPL__422, SII9777_BIT_DEPTH__8),
+    "YCbCr444BT709": (SII9777_CLR_FMT__YC709_F, SII9777_CR_SMPL__444, SII9777_BIT_DEPTH__8),
+    "YCbCr422BT2020": (SII9777_CLR_FMT__YC2020_CL, SII9777_CR_SMPL__422, SII9777_BIT_DEPTH__8),
+    "YCbCr444BT2020": (SII9777_CLR_FMT__YC2020_CL, SII9777_CR_SMPL__444, SII9777_BIT_DEPTH__8),
+    "xvYCC422BT709": (SII9777_CLR_FMT__XV709, SII9777_CR_SMPL__422, SII9777_BIT_DEPTH__8),
+    "xvYCC444BT709": (SII9777_CLR_FMT__XV709, SII9777_CR_SMPL__444, SII9777_BIT_DEPTH__8),
+    "RGB444LR": (SII9777_CLR_FMT__RGB_L, SII9777_CR_SMPL__444, SII9777_BIT_DEPTH__8),
+    "RGB444FR": (SII9777_CLR_FMT__RGB_F, SII9777_CR_SMPL__444, SII9777_BIT_DEPTH__8)
+}
+
+
+PIXEL_FORMAT_VIDEO_INFO_MAPPER = {
+    "YCbCr422BT709": {"color_format": "YCbCr422", "color_depth": 8, "colorimetry": "ITU709-[6]"},
+    "YCbCr444BT709": {"color_format": "YCbCr444", "color_depth": 8, "colorimetry": "ITU709-[6]"},
+    "YCbCr422BT2020": {"color_format": "YCbCr422", "color_depth": 8, "colorimetry": "ITU2020-[6]"},
+    "YCbCr444BT2020": {"color_format": "YCbCr444", "color_depth": 8, "colorimetry": "ITU2020-[6]"},
+    "xvYCC422BT709": {"color_format": "xvYCbCr444", "color_depth": 8, "colorimetry": "ITU709-[6]"},
+    "xvYCC444BT709": {"color_format": "xvYCbCr444", "color_depth": 8, "colorimetry": "ITU709-[6]"},
+    "RGB444LR": {"color_format": "RGB", "color_depth": 8, "colorimetry": "no data"},
+    "RGB444FR": {"color_format": "RGB", "color_depth": 8, "colorimetry": "no data"}
+}
+
+
+@parametrize("pixel_format", type=str, choice=PIXEL_FORMAT_MAPPER.keys())
+class PixelFormatConversionTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        self.qd980 = TestContextManager.current_context().resource.avproducer
+        with self.device.lock:
+            pEnable = bool_t(True)
+            convset_return = Sii9777PixelFormatConversionSet(self.device.drv_instance, pEnable)
+            assert convset_return == 0, "The instruction for format conversion set is not done properly."
+
+        with self.device.lock:
+            pStatus = Sii9777PixFmtConv_t()
+            query_ret = Sii9777PixelFormatConversionQuery(self.device.drv_instance, pStatus)
+            assert query_ret == 0, "The instruction for format conversion query is not done properly."
+            assert pStatus.value == 1, "The format conversion should be enabled."
+
+        with self.device.lock:
+            pConversionStatus = bool_t(False)
+            Sii9777PixelFormatConversionGet(self.device.drv_instance, pConversionStatus)
+            assert pConversionStatus.value is True, "The pixel format conversion is not enabled."
+
+    def call_Sii9777OutputPixelFormatSet(self, color_format, chroma_sampling, bit_depth):
+        clrFmt = Sii9777ClrFmt_t(color_format)
+        crSmpl = Sii9777CrSmpl_t(chroma_sampling)
+        bitDepth = Sii9777BitDepth_t(bit_depth)
+        pPixFmt = Sii9777PixFmt_t(clrFmt, crSmpl, bitDepth)
+        with self.device.lock:
+            retcode = Sii9777OutputPixelFormatSet(self.device.drv_instance, byref(pPixFmt))
+        self._test_api_retcode("Sii9777OutputPixelFormatSet", retcode)
+
+    def get_csc_info(self):
+        raw_info = self.qd980.get_detail_video_info(mem_size="big")
+        raw_info_list = raw_info.split()
+        d = dict()
+        for item in raw_info_list:
+            if "RGB_YCC" in item:
+                color_format = item.split(":")[1:]
+                if color_format == "RGB":
+                    d['color_format'] = "RGB444"
+                else:
+                    d['color_format'] = "YCbCr" + "".join(color_format)
+            if "Color_Depth" in item:
+                color_depth = int(item.split(":")[1]) / 3
+                d['color_depth'] = color_depth
+            if "Colorimetry" in item:
+                colorimetry = item.split(":")[1]
+                d['colorimetry'] = colorimetry
+        return d
+
+    def test_PixelFormatConversion(self):
+        self.call_Sii9777OutputPixelFormatSet(*PIXEL_FORMAT_MAPPER[self.pixel_format])
+        expect_csc_info = PIXEL_FORMAT_VIDEO_INFO_MAPPER[self.pixel_format]
+        actual_csc_info = self.get_csc_info()
+        self.assertEqual(expect_csc_info, actual_csc_info,
+                         "The real color space %s should be same as the expected %s after Boston conversion." % (
+                             actual_csc_info, expect_csc_info))
+
+@skip("not ready")
+class Smpte4kTestCase(BaseBostonDriverTestCase):
+    """
+    test failed on 4096 and 3840 conversion
+    """
+    def setUp(self):
+        self.__smpte4k = Sii9777Smpte4k_t()
+        self.smpte4k_mapper = {SII9777_SMPTE4K__PASSTHRU: "SII9777_SMPTE4K__PASSTHRU",
+                               SII9777_SMPTE4K__4096_TO_3840: "SII9777_SMPTE4K__4096_TO_3840",
+                               SII9777_SMPTE4K__3840_TO_4096: "SII9777_SMPTE4K__3840_TO_4096"}
+        with self.device.lock:
+            Sii9777Smpte4kGet(self.device.drv_instance, byref(self.__smpte4k))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777Smpte4kSet(self.device.drv_instance, byref(self.__smpte4k))
+
+    def test_Sii9777Smpte4kSetPASSTHRU(self):
+        expect_smpte4k = Sii9777Smpte4k_t(0)
+        with self.device.lock:
+            retcode = Sii9777Smpte4kSet(self.device.drv_instance, byref(expect_smpte4k))
+        self._test_api_retcode("Sii9777Smpte4kSet", retcode)
+        with self.device.lock:
+            actual_smpte4k = Sii9777Smpte4k_t()
+            Sii9777Smpte4kGet(self.device.drv_instance, byref(actual_smpte4k))
+        self.assertEquals(self.smpte4k_mapper.values()[actual_smpte4k.value],
+                          self.smpte4k_mapper.values()[expect_smpte4k.value],
+                          "4K Smpte should be %s" % self.smpte4k_mapper.values()[expect_smpte4k.value])
+
+    def test_Sii9777Smpte4kSet3840(self):
+        expect_smpte4k = Sii9777Smpte4k_t(1)
+        with self.device.lock:
+            retcode = Sii9777Smpte4kSet(self.device.drv_instance, byref(expect_smpte4k))
+        self._test_api_retcode("Sii9777Smpte4kSet", retcode)
+        with self.device.lock:
+            actual_smpte4k = Sii9777Smpte4k_t()
+            Sii9777Smpte4kGet(self.device.drv_instance, byref(actual_smpte4k))
+        self.assertEquals(self.smpte4k_mapper.values()[actual_smpte4k.value],
+                          self.smpte4k_mapper.values()[expect_smpte4k.value],
+                          "4K Smpte should be %s" % self.smpte4k_mapper.values()[expect_smpte4k.value])
+
+    def test_Sii9777Smpte4kSet4096(self):
+        expect_smpte4k = Sii9777Smpte4k_t(2)
+        with self.device.lock:
+            retcode = Sii9777Smpte4kSet(self.device.drv_instance, byref(expect_smpte4k))
+        self._test_api_retcode("Sii9777Smpte4kSet", retcode)
+        with self.device.lock:
+            actual_smpte4k = Sii9777Smpte4k_t()
+            Sii9777Smpte4kGet(self.device.drv_instance, byref(actual_smpte4k))
+        self.assertEquals(self.smpte4k_mapper.values()[actual_smpte4k.value],
+                          self.smpte4k_mapper.values()[expect_smpte4k.value],
+                          "4K Smpte should be %s" % self.smpte4k_mapper.values()[expect_smpte4k.value])
+
+
+
+
+

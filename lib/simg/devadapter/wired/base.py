@@ -1,0 +1,386 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+import subprocess
+from ctypes import *
+from abc import ABCMeta, abstractmethod, abstractproperty
+
+from simg.devadapter import BaseDeviceAdapter, DeviceAdapterError
+from simg.devadapter.logsubject import SerialLogSubject, QueueLogSubject
+import blackbox
+
+
+# from collections import namedtuple
+# MscMessage = namedtuple("MscMessage", ["type", "code"])
+
+# RCP = 0x10
+# RCPK = 0x11
+# RCPE = 0x12
+#
+# RAP = 0x20
+# RAPK = 0x21
+#
+# UCP = 0x30
+# UCPK = 0x31
+# UCPE = 0x32
+#
+# RBP = 0x22
+# RBPK = 0x23
+# RBPE = 0x24
+
+
+class MscMessage(object):
+    def __init__(self, type, code):
+        self.type = type
+        self.code = code
+
+    def __str__(self):
+        return "<MscMessage(type: 0x%x, code: 0x%x)>" % (self.type, self.code)
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __eq__(self, other):
+        if self.type == other.type and self.code == other.code:
+            return True
+        return False
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+
+class Mhl2Interface(object):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def get_local_devcap(self):
+        pass
+
+    @abstractmethod
+    def get_remote_devcap(self):
+        pass
+
+    @abstractmethod
+    def send_msc_message(self, message):
+        pass
+
+    @abstractmethod
+    def recv_msc_message(self):
+        pass
+
+    def send_rap(self, code):
+        logger.info("send rap command: 0x%02X", code)
+        self.send_msc_message(MscMessage(0x20, code))
+
+    def send_rcp(self, code):
+        logger.info("send rcp command: 0x%02X", code)
+        self.send_msc_message(MscMessage(0x10, code))
+
+    def send_ucp(self, code):
+        logger.info("send ucp command: 0x%02X", code)
+        self.send_msc_message(MscMessage(0x30, code))
+
+
+class Mhl3Interface(Mhl2Interface):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def get_local_x_devcap(self):
+        pass
+
+    @abstractmethod
+    def get_remote_x_devcap(self):
+        pass
+
+    def send_rbp(self, code):
+        logger.info("send rbp command: 0x%02X", code)
+        self.send_msc_message(MscMessage(0x22, code))
+
+
+class BaseBlackBoxDeviceAdapter(BaseDeviceAdapter):
+    __metaclass__ = ABCMeta
+
+    def __init__(self, devport, comport, baudrate, **kwargs):
+        super(BaseBlackBoxDeviceAdapter, self).__init__(**kwargs)
+        self._comport = comport
+        self._devport = devport
+        self._bb_index = int(devport)
+        self._bb_handle = blackbox.BB_HANDLE()
+        self.log_subject = SerialLogSubject(comport, baudrate)
+
+    def _set_ic2_options(self):
+        i2c_options = blackbox.I2C_OPTIONS()
+        i2c_options.readTimeout = 100
+        i2c_options.writeTimeout = 100
+        i2c_options.repeatedStart = 1
+        i2c_options.isBigEndian = 1
+        i2c_options.noIncAddr = 1
+        i2c_options.i2cBusMode = blackbox.I2C_MODE_STD
+        i2c_options.i2cTimeout = 127
+        i2c_options.busGrantEnabled = 1
+        blackbox.I2C_SetOptions(self._bb_handle, i2c_options)
+
+    def _set_gpio_pins(self):
+        gpio_options = blackbox.GPIO_OPTIONS()
+        gpio_options.readTimeout = 100
+        gpio_options.writeTimeout = 100
+        gpio_options.gpioCfg0 = blackbox.GPIO_PUSH_PULL
+        gpio_options.gpioCfg1 = blackbox.GPIO_PUSH_PULL
+        gpio_options.gpioCfg2 = blackbox.GPIO_PUSH_PULL
+        gpio_options.gpioCfg3 = blackbox.GPIO_INPUT
+        gpio_options.gpioCfg4 = blackbox.GPIO_PUSH_PULL
+        gpio_options.gpioCfg5 = blackbox.GPIO_INPUT
+        gpio_options.gpioCfg6 = blackbox.GPIO_INPUT
+        gpio_options.gpioCfg7 = blackbox.GPIO_INPUT
+        gpio_options.gpioRequest = 4
+        gpio_options.gpioGrant = 3
+        gpio_options.gpioRequestActiveLow = 1
+        gpio_options.gpioGrantActiveLow = 1
+        blackbox.GPIO_SetPins(self._bb_handle, gpio_options)
+
+    def open(self):
+        self.log_subject.open()
+        blackbox.BlackBox_Open(self._bb_index, byref(self._bb_handle))
+        self._set_ic2_options()
+        self._set_gpio_pins()
+
+    def close(self):
+        if self._bb_handle is not None:
+            blackbox.BlackBox_Close(self._bb_handle)
+            self._bb_handle = None
+            self.log_subject.close()
+
+    def read_byte(self, page, offset):
+        # logger.debug("read register: page=%x, offset=%s", page, offset)
+        return blackbox.I2C_ReadByte(self._bb_handle, page, offset)
+
+    def write_byte(self, page, offset, data):
+        # logger.debug("write register: page=0x%02X, offset=0x%02X, data=0x%02X", page, offset, data)
+        blackbox.I2C_WriteByte(self._bb_handle, page, offset, data)
+
+    def read_block(self, page, offset, length):
+        data = (blackbox.BYTE * length)()
+        blackbox.I2C_ReadBlock(self._bb_handle, page, offset, data, length)
+        return [b for b in bytearray(data)]
+
+    def __str__(self):
+        return "<%s(comport:%s, devport:%s)>" % (self.__class__.__name__, self._comport, self._devport)
+
+
+class BaseAndroidDeviceAdapter(BaseDeviceAdapter):
+    def __init__(self, comport=None, adb=True, **kwargs):
+        super(BaseAndroidDeviceAdapter, self).__init__(**kwargs)
+        self.__comport = comport
+        self.__adb = adb
+        if self.__comport is not None:
+            self.log_subject = SerialLogSubject(comport, 115200)
+
+    @abstractproperty
+    def DEVPATH(self):
+        pass
+
+    def open(self):
+        os.system("adb start-server")
+        if self.__comport is not None:
+            self.log_subject.open()
+
+    def close(self):
+        if self.__comport is not None:
+            self.log_subject.close()
+            # os.system("adb kill-server")
+
+    def send_rap(self, code):
+        cmd = "echo %d > %s/rap/out" % (code, self.DEVPATH)
+        self.run(cmd)
+
+    def send_rcp(self, code):
+        cmd = "echo %d > %s/rcp/out" % (code, self.DEVPATH)
+        return self.run(cmd)
+
+    def send_ucp(self, code):
+        cmd = "echo %d > %s/ucp/out" % (code, self.DEVPATH)
+        return self.run(cmd)
+
+    def send_rbp(self, code):
+        cmd = "echo %d > %s/rbp/out" % (code, self.DEVPATH)
+        return self.run(cmd)
+
+    def run(self, cmd):
+        if self.__adb:
+            cmd = 'adb shell "%s"' % cmd
+        logger.debug("run: cmd=%s", cmd)
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
+        stdout = proc.communicate()[0]
+        logger.debug("run: retcode=%s, output=\n%s", proc.returncode, stdout)
+        if proc.returncode != 0:
+            raise DeviceAdapterError("command '%s' error" % cmd)
+        return proc.returncode, stdout
+
+    def read_byte(self, page, offset):
+        return self.read_block(page, offset, 1)[0]
+
+    def read_block(self, page, offset, length):
+        self.run("echo %d > %s/reg_access/page" % (page, self.DEVPATH))
+        self.run("echo %d > %s/reg_access/offset" % (offset, self.DEVPATH))
+        self.run("echo %d > %s/reg_access/length" % (length, self.DEVPATH))
+        retcode, data = self.run("cat %s/reg_access/data" % self.DEVPATH)
+        actual_key, value = data.split(":")
+        expect_key = "0x%02x'0x%02x" % (page, offset)
+        if actual_key != expect_key:
+            raise DeviceAdapterError("%s != %s" % (actual_key, expect_key))
+        return [int(s, 16) for s in value.strip().split(" ")]
+
+    def write_byte(self, page, offset, data):
+        raise NotImplementedError
+
+    def send_msc_message(self, message):
+        logger.debug("%s send msc message: %s", self, message)
+        self.write_byte(0xC8, 0xB9, 0x68)
+        self.write_byte(0xC8, 0xBA, message.type)
+        self.write_byte(0xC8, 0xBB, message.code)
+        self.write_byte(0xC8, 0XB8, 0x02)
+
+    def recv_msc_message(self):
+        type = self.read_byte(0xC8, 0xBF)
+        code = self.read_byte(0xC8, 0xC0)
+        message = MscMessage(type, code)
+        logger.debug("%s recv msc message: %s", self, message)
+        return message
+
+    def get_local_devcap(self):
+        devcap = []
+        for index in range(16):
+            set_offset_cmd = "echo %s > %s/devcap/local_offset" % (index, self.DEVPATH)
+            self.run(set_offset_cmd)
+
+            get_devcap_cmd = "cat %s/devcap/local" % self.DEVPATH
+            value = self.run(get_devcap_cmd)[1]
+            devcap.append(int(value, 16))
+        logger.debug("%s's local devcap: %s", self, devcap)
+        return devcap
+
+    def get_remote_devcap(self):
+        devcap = []
+        for index in range(16):
+            set_offset_cmd = "echo %s > %s/devcap/remote_offset" % (index, self.DEVPATH)
+            self.run(set_offset_cmd)
+
+            get_devcap_cmd = "cat %s/devcap/remote" % self.DEVPATH
+            value = self.run(get_devcap_cmd)[1]
+            devcap.append(int(value, 16))
+        logger.debug("%s's remote devcap: %s", self, devcap)
+        return devcap
+
+    def get_local_x_devcap(self):
+        # page 4: 0x80-0x83
+        # return: 0xba'0x80: 0x03 0x07 0x09 0x01
+        return self.read_block(0xBA, 0x80, 4)
+
+    def get_remote_x_devcap(self):
+        raise NotImplementedError
+
+    def ___str__(self):
+        return "<%s(comport:%s)>" % (self.__class__.__name__, self.__comport)
+
+
+import time
+import threading
+import Queue
+import serial
+
+
+class SerialStreamDistributor(threading.Thread):
+    def __init__(self, ser, req_queue, log_queue):
+        super(self.__class__, self).__init__()
+        self.__serial = ser
+        self.__req_queue = req_queue
+        self.__log_queue = log_queue
+
+    def dist(self, s):
+        if s:
+            index = s.find("\xFF\xE0")
+            if index != -1:
+                self.__log_queue.put(s[:index])
+                length = ord(s[index+2])
+                stop = index + 3 + length + 1
+                block = [ord(c) for c in s[index:stop]]
+                self.__req_queue.put(block)
+                self.dist(s[stop:])
+            else:
+                self.__log_queue.put(s)
+
+    def run(self):
+        while self.__serial.isOpen():
+            size = self.__serial.inWaiting()
+            if size:
+                s = self.__serial.read(size)
+                self.dist(s)
+            time.sleep(0.5)
+
+
+class BaseSerialDeviceAdapter(BaseDeviceAdapter):
+    def __init__(self, comport, baudrate, **kwargs):
+        super(BaseSerialDeviceAdapter, self).__init__(**kwargs)
+        self.__serial = serial.Serial()
+        self.__serial.port = comport
+        self.__serial.baudrate = baudrate
+        self.__reg_queue = Queue.Queue()
+        self.__log_queue = Queue.Queue()
+        self.__distributor = None
+        self.log_subject = QueueLogSubject(self.__log_queue)
+
+    def __str__(self):
+        return "<%s(comport:%s)>" % (self.__class__.__name__, self.__serial.port)
+
+    def open(self):
+        self.__serial.open()
+        self.__distributor = SerialStreamDistributor(self.__serial, self.__reg_queue, self.__log_queue)
+        self.__distributor.start()
+        self.log_subject.open()
+
+    def close(self):
+        self.log_subject.close()
+        self.__serial.close()
+        self.__distributor.join()
+
+    def read_byte(self, page, offset):
+        # logger.debug("read register: page=%x, offset=%s", page, offset)
+        block = self.read_block(page, offset, 1)
+        return block[0]
+
+    def write_byte(self, page, offset, value):
+        # logger.debug("write register: page=0x%02X, offset=0x%02X, data=0x%02X", page, offset, data)
+        # send: FF 60 04 C0 B9 01 68
+        data = bytearray(7)
+        data[0] = 0xFF
+        data[1] = 0x60
+        data[2] = 0x04
+        data[3] = page
+        data[4] = offset
+        data[5] = 0x01
+        data[6] = value
+        self.__serial.write(data)
+
+    def read_block(self, page, offset, length):
+        # send: FF E0 03 C0 E0 10
+        # recv: FF E0 10 49 10 01 00 00 00 00 00 00 00 00 00 00 00 00 00
+        data = bytearray(6)
+        data[0] = 0xFF
+        data[1] = 0xE0
+        data[2] = 0x03
+        data[3] = page
+        data[4] = offset
+        data[5] = length
+        self.__serial.write(data)
+        resp = self.__reg_queue.get()
+        return resp[3:]
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s [%(levelname)-8s] - %(message)s'
+    )

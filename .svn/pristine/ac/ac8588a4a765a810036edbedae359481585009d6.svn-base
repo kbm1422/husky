@@ -1,0 +1,28 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+class TestResource(object):
+
+    def on_runner_start(self):
+        pass
+
+    def on_case_start(self, test):
+        pass
+
+    def on_case_stop(self, test):
+        pass
+
+    def on_runner_stop(self):
+        pass
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s %(thread)-5d [%(levelname)-8s] - %(message)s'
+    )

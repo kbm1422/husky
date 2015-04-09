@@ -1,0 +1,275 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import re
+import time
+import socket
+import subprocess
+from abc import ABCMeta, abstractmethod
+
+from simg.util import sstring
+from simg.devadapter import DeviceAdapterError
+from base import CommandInterface, VendorMsg
+
+
+class SWAM3CommandInterface(CommandInterface):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def sendcmd(self, *args, **kwargs):
+        pass
+
+    @abstractmethod
+    def reset(self):
+        pass
+
+    @abstractmethod
+    def upgradeFirmware(self, filename):
+        pass
+
+    def nvramreset(self):
+        self.sendcmd("nvram_set_defaults")
+        self.reset()
+
+    def nvramget(self, addr):
+        addr = int(addr, 16) if isinstance(addr, str) else addr
+        resp = self.sendcmd("nvramget 0x%x" % addr)
+        return int(resp.split("=")[1], 16)
+
+    def nvramset(self, addr, value):
+        addr = int(addr, 16) if isinstance(addr, str) else addr
+        value = int(value, 16) if isinstance(value, str) else value
+        return self.sendcmd("nvramset 0x%x 0x%x" % (addr, value))
+
+    def getMacAddress(self):
+        mac = self.sendcmd("custparamget 0")
+        if re.search("OK", mac, re.I):
+            #for B&A
+            mac = mac.split("OK")[0].split("=")[1]
+        else:
+            #for Gen3
+            mac = mac.split("<")[0]
+        return sstring.trimMacAddress(mac)
+
+    def setMacAddress(self, mac):
+        self.sendcmd("custparamset 0 " + mac)
+
+    def getDeviceName(self):
+        devname = self.sendcmd("custparamget 2")
+        if re.search("OK", devname, re.I):
+            #for B&A
+            devname = devname.split("OK")[0].split("=")[1]
+        else:
+            #for Gen3
+            devname = devname.split(" ")[0]
+        return devname
+
+    def setDeviceName(self, devname):
+        self.sendcmd("custparamset 2 " + devname)
+
+    def connect(self, dstMacAddr=None):
+        if dstMacAddr:
+            dstMacAddr = dstMacAddr.lower() + ":00"
+            macAddrs = self.sendcmd("dev_table_dump 2")
+            R = re.compile(r"\(([^\)]*)\)")
+            deviceList = re.findall(R, macAddrs)
+            if deviceList:
+                if dstMacAddr in deviceList:
+                    index = deviceList.index(dstMacAddr)
+                    self.sendcmd("connect_device " + index)
+                    logger.debug("Connecting to device " + index)
+                else:
+                    logger.debug("The given device not in the wvan")
+            else:
+                logger.debug("No device in the wvan")
+        else:
+            self.sendcmd("connect_device 0")
+            logger.debug("Connecting to device 0")
+
+    def disconnect(self):
+        self.sendcmd("disconnect_device 0")
+        logger.debug("Disconnecting to device 0")
+
+    def setVendorMsgFilter(self, msgFilter):
+        return self.sendcmd("vendor_msg_set_filter %s" % msgFilter)
+
+    def sendVendorMsg(self, msg):
+        if not isinstance(msg, VendorMsg):
+            raise TypeError("msg is not a VendorMsg")
+        return self.sendcmd("vendor_msg_send %s %s %s %s" % (msg.vendorID, msg.dstMacAddr, msg.length, msg.data))
+
+    def recvVendorMsg(self):
+        """<15:40:52.319> 11:11:11 11:22:33:44:55:66 03 AA:BB:CC 0"""
+        resp = self.sendcmd("ss_server getvendormsg")
+        l = resp.split(" ")
+        l = l[1:-1]
+        vendorID = l[0].lower()
+        dstMacAddr = sstring.trimMacAddress(l[1].lower())
+        length = int(l[2])
+        data = l[3].lower()
+        return VendorMsg(vendorID, dstMacAddr, length, data)
+
+    def getFwVersion(self):
+        return self.sendcmd("show_version")
+
+    def getFwBuild(self):
+        fw_ver = self.getFwVersion()
+        num_index = fw_ver.find('SVN') + 3
+        return 'svn' + fw_ver[num_index:num_index+5]
+
+    def getDevState(self):
+        return self.sendcmd("dev_get_state")
+
+    def getLinkQuality(self):
+        link_qua = self.sendcmd("get_hr_link_quality")
+        qua_index = link_qua.find('=') + 1
+        return int(link_qua[qua_index:])
+
+    def getSoftPairingStatus(self):
+        resp = self.sendcmd("soft_pairing_info")
+        mode = re.search(r"Soft pairing status=(\d{1})", resp).group(1)
+        return int(mode)
+
+    def getProductId(self):
+        resp = self.sendcmd("custparamget 3")
+        pid = re.search(r"cfgget id=([\w ]+)", resp).group(1)
+        return pid
+
+
+class SWAM3Connection(SWAM3CommandInterface):
+    def __init__(self, addr, name=""):
+        logger.debug("create ss_server connection with addr: %s", addr)
+        self.logname = None
+        self._name = name
+        self._addr = addr
+        self._sock = None
+
+    def open(self):
+        self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._sock.connect(self._addr)
+        self._sock.setblocking(0)
+
+    def close(self):
+        if self._sock:
+            self._sock.close()
+            self._sock = None
+
+    def reset(self):
+        raise NotImplementedError
+
+    def upgradeFirmware(self, filename):
+        raise NotImplementedError
+
+    def sendcmd(self, cmd, timeout=5.0, interval=0.5, trim=True, wakeup=True):
+        logger.info("send: '%s' to %s%s", cmd, self._name, self._addr)
+        # Clear any data in the receive buffer first before issuing the command
+        while True:
+            # if a recv() call doesn’t find any data, an error exception is raised
+            try:
+                self._sock.recv(4096)
+            except socket.error:
+                break
+
+        data = ""
+        starttime = time.time()
+        try:
+            self._sock.send(str(cmd + "<EOF>").encode("ascii"))
+            # self._sock.send(str(cmd + "<EOF>"))
+        except socket.error:
+            logger.exception("")
+        else:
+            while True:
+                try:
+                    newdata = self._sock.recv(4096)
+                    logger.debug("recv: %s", newdata)
+                    data += newdata.decode()
+                except socket.error:
+                    pass
+                finally:
+                    if "<EOF>" in data:
+                        break
+                    if time.time() - starttime > timeout:
+                        logger.debug("recv timeout")
+                        break
+                    if interval:
+                        time.sleep(interval)
+
+        if trim:
+            data = data.strip()
+            data = data.replace("<EOF>", "")
+            data = data.replace("\r", "")
+        logger.info("Response: %s", data)
+        return data
+
+    def set_ss_server_logname(self, newname):
+        resp = self.sendcmd("ss_server logfilename=%s" % newname)
+        if resp == "OK":
+            logger.info("change ss_server log path done")
+            self.logname = newname
+        else:
+            raise DeviceAdapterError("change ss_server log path failed")
+
+    def shutdown_ss_server(self):
+        logger.info("exit ss_server")
+        self.sendcmd("ss_server exit", timeout=1.0)
+        self.close()
+
+
+class SWAM3Server(object):
+    BINPATH = "C:/Program Files (x86)/Silicon Image/SWAM3/SWAM3.exe"
+
+    def __init__(self, moduleid, tcpport, ap_moduleid=None, logname=None, srvtype="server"):
+        self._moduleid = moduleid
+        self._tcpport = int(tcpport)
+        self._logname = logname
+        self._ap_moduleid = ap_moduleid
+        self._srvproc = None    # will be set when calling self.start
+        self._srvtype = srvtype
+
+    def __check_ss_server_available(self):
+        logger.debug("check ss_server is available with cmd: show_version ")
+        conn = SWAM3Connection(addr=("127.0.0.1", self._tcpport))
+        while True:
+            try:
+                conn.open()
+            except socket.error:
+                time.sleep(1)
+                continue
+            else:
+                cmd = "show_version 1" if self._srvtype == "server_jax" else "show_version"
+                if not conn.sendcmd(cmd):
+                    conn.sendcmd("ss_server exit", timeout=1.0)
+                    raise DeviceAdapterError("startup ss_server failed")
+                break
+            finally:
+                conn.close()
+
+    def start(self):
+        cmd = '"%s" %s --moduleid=%s --portno=%s --logsendtoclient=0 --logtoconsole=0 --start=1' % (self.BINPATH,
+                                                                                                    self._srvtype,
+                                                                                                    self._moduleid,
+                                                                                                    self._tcpport)
+        if self._logname:
+            cmd += " --logfilename=%s" % self._logname
+        if self._ap_moduleid:
+            cmd += " --ap_moduleid=%s" % self._ap_moduleid
+        logger.info("startup ss_server with cmd: %s", cmd)
+        self._srvproc = subprocess.Popen(cmd, close_fds=True)
+        self.__check_ss_server_available()
+
+    def stop(self):
+        conn = SWAM3Connection(addr=("127.0.0.1", self._tcpport))
+        conn.shutdown_ss_server()
+        if self._srvproc is not None:
+            self._srvproc.terminate()
+            self._srvproc = None
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s [%(levelname)-8s] - %(message)s'
+    )

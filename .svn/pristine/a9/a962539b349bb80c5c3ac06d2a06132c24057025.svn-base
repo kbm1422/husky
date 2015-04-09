@@ -1,0 +1,77 @@
+import logging
+logger = logging.getLogger(__name__)
+
+from simg.test.framework import TestCase
+
+
+class BaseTestCase(TestCase):
+    def runTest(self):
+        raise NotImplementedError
+    
+    def make_associated(self, txunit, rxunit):
+        if txunit.device.getMode() == "off":
+            self._test_mode_wihd(txunit)
+        elif txunit.device.getMode() == "wihd":
+            pass
+        else:
+            pass
+        wvans = self._test_scan(txunit, rxunit)
+        self._test_join(txunit, [wvans[0]["id"], wvans[0]["hr"], wvans[0]["lr"]])
+        
+    def make_connected(self, txunit, rxunit):
+        self.make_associated(txunit, rxunit)
+        rxmac = rxunit.device.getMacAddress()
+        self._test_connect(txunit, rxmac)
+    
+    def _test_mode_off(self, unit):
+        mode = "off"
+        with unit.event.listen("mode_change") as listener:
+            unit.device.setMode(mode)
+            event = listener.get(timeout=2.0)
+            self.assertEqual(event.data, mode, "should get uevent 'mode_change' and its data should be off in 2s")
+
+    def _test_mode_wihd(self, unit):
+        mode = "wihd"
+        with unit.event.listen("mode_change") as listener:
+            unit.device.setMode(mode)
+            event = listener.get(timeout=2.0)
+            self.assertEqual(event.data, mode, "should get uevent 'mode_change' and its data should be wihd in 2s")
+
+    def _test_scan(self, txunit, rxunit):
+        with txunit.uevent.listen("wvan_scan_complete") as listener:
+            """{"event":"wvan_scan_complete","data":[{"name":"123","id":127,"hr":2,"lr":2,"strength":77}]}"""
+            resp = txunit.device.scan()
+            self.assertEqual(resp, "1", "cat scan value should be 1", iswarning=True)
+            
+            state = txunit.device.getDevState()
+            self.assertIn("scan", state, "current state should be 'scan'")
+            
+            event = listener.get(timeout=5.0)
+            
+            self.assertIsNotNone(event, "should get uevent 'wvan_scan_complete' in 5s")
+            return event.data
+    
+    def _test_join(self, txunit, wvan):
+        with txunit.uevent.listen("associated") as listener:
+            txunit.device.join(wvan)
+            event = listener.get(timeout=15)
+            self.assertIsNotNone(event, "should get uevent 'associated' in 15s")
+
+            actual = txunit.device.catJoin()
+            self.assertListEqual(actual, wvan, "cat 'wihd/wvan/join' to check joined wvan")
+
+            resp = txunit.device.getDevState()
+            self.assertIn("associated", resp, "check associated, cat 'wihd/state' response should be associated")
+
+    def _test_connect(self, txunit, rxmac):
+        with txunit.uevent.listen("av_enabled") as listener:
+            txunit.device.connect(rxmac)
+            event = listener.get(timeout=15)
+
+            self.assertIsNotNone(event, "should get uevent 'av_enabled' in 15s")
+
+            resp = txunit.device.getDevState()
+            self.assertIn("av_enabled", resp, "check av_enabled, cat 'wihd/state' response should be av_enabled")
+
+if __name__ == "__main__":
+    pass

@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestSuite name="HDCP2.2 Repeater Test">
+  <For list="TestItem" type="xpath" param="item">
+    <TestCase class="cases.wired.test_hdcp22.HDCPTestCase" method="test_repeater">
+      <Attribute name="interface" value="HDMI" />
+      <Attribute name="dut" value="repeater" />
+      <Attribute name="item" value="%(item)s" />
+    </TestCase>
+  </For>
+  <TestItem>Init</TestItem>
+  <TestItem>3A-01</TestItem>
+  <TestItem>3A-02</TestItem>
+  <TestItem>3A-03</TestItem>
+  <TestItem>3A-04</TestItem>
+  <TestItem>3A-05T1</TestItem>
+  <TestItem>3A-05T2</TestItem>
+  <TestItem>3A-05T3</TestItem>
+  <TestItem>3A-06</TestItem>
+  <TestItem>3A-07T1</TestItem>
+  <TestItem>3A-07T2</TestItem>
+  <TestItem>3B-01</TestItem>
+  <TestItem>3B-02</TestItem>
+  <TestItem>3B-03</TestItem>
+  <TestItem>3B-04</TestItem>
+  <TestItem>3B-05</TestItem>
+  <TestItem>3B-06</TestItem>
+  <TestItem>3B-07T0</TestItem>
+  <TestItem>3B-07T1</TestItem>
+  <TestItem>3C-01-1</TestItem>
+  <TestItem>3C-01-2</TestItem>
+  <TestItem>3C-01-3</TestItem>
+  <TestItem>3C-01-4</TestItem>
+  <TestItem>3C-04</TestItem>
+  <TestItem>3C-05</TestItem>
+  <TestItem>3C-06</TestItem>
+  <TestItem>3C-07</TestItem>
+  <TestItem>3C-08</TestItem>
+  <TestItem>3C-09-1</TestItem>
+  <TestItem>3C-09-2</TestItem>
+  <TestItem>3C-10-1</TestItem>
+  <TestItem>3C-10-2</TestItem>
+  <TestItem>3C-11</TestItem>
+  <TestItem>3C-12</TestItem>
+  <TestItem>3C-13</TestItem>
+  <TestItem>3C-14</TestItem>
+  <TestItem>3C-15</TestItem>
+  <TestItem>3C-16</TestItem>
+  <TestItem>3C-17</TestItem>
+  <TestItem>3C-18</TestItem>
+  <TestItem>3C-19</TestItem>
+  <TestItem>3C-20</TestItem>
+  <TestItem>3C-21</TestItem>
+  <TestItem>3C-22</TestItem>
+  <TestItem>3C-23</TestItem>
+  <TestItem>3C-24</TestItem>
+  <TestItem>3C-25T0</TestItem>
+  <TestItem>3C-25T1</TestItem>
+  <TestItem>3C-25T2</TestItem>
+</TestSuite>

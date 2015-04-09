@@ -1,0 +1,7 @@
+2014-11-14 15:45:24,983 - 8408  [DEBUG   ] - START TestCase: test_video_format_480i2x29_422_8
+2014-11-14 15:45:24,983 - 8408  [INFO    ] - Call actions in context with type: 2
+2014-11-14 15:45:25,900 - 8408  [INFO    ] - send: 'ss_server logfilename=D:\husky\logs\2014-11-14_15-44-39\16ab3261-6bd2-11e4-9e91-a088b4c6ed3c\Formats Test Suite\test_video_format_480i2x29_422_8_3_SRC1.log' to SRC1('127.0.0.1', 40201)
+2014-11-14 15:45:26,400 - 8408  [DEBUG   ] - recv: OK<EOF>
+2014-11-14 15:45:26,401 - 8408  [INFO    ] - Response: OK
+2014-11-14 15:45:26,403 - 8408  [INFO    ] - change ss_server log path done
+2014-11-14 15:45:29,960 - 8408  [INFO    ] - send: 'ss_server logfilename=D:\husky\logs\2014-11-14_15-44-39\16ab3261-6bd2-11e4-9e91-a088b4c6ed3c\Formats Test Suite\test_video_format_480i2x29_422_8_3_SINK1.log' to SINK1('127.0.0.1', 40603)

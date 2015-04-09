@@ -1,0 +1,102 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+from simg.test.framework import TestCase, TestContextManager
+from collections import OrderedDict
+
+
+class EDIDTestCase(TestCase):
+    def setUp(self):
+        resource = TestContextManager.current_context().resource
+        self.qd = resource.avproducer
+        self.tv = resource.avconsumer
+
+    def tearDown(self):
+        pass
+
+    def get_edid_block(self, data):
+        block = []
+        block0 = []
+        block1 = []
+        block2 = []
+        block3 = []
+        length = len(data)
+        if len(data) <= 512:
+            logger.debug("there are 2 edid block")
+            for i in range(0, length / 2, 2):
+                block0.append(data[i] + data[i + 1], )
+                block.append(block0)
+            for i in range(length / 2, length, 2):
+                block1.append(data[i] + data[i+1])
+                block.append(block1)
+        else:
+            logger.debug("there are 4 edid block")
+            for i in range(0, length/4, 2):
+                block0.append(data[i] + data[i + 1], )
+                block.append(block0)
+            for i in range(length/4, length/2, 2):
+                block1.append(data[i] + data[i + 1])
+                block.append(block1)
+            for i in range(length/2, length*3/4, 2):
+                block2.append(data[i] + data[i + 1], )
+                block.append(block2)
+            for i in range(length*3/4, length, 2):
+                block3.append(data[i] + data[i + 1])
+                block.append(block3)
+        return block
+
+    def compare_edid(self, block_tv, block_sink):
+        self.mismatching = {}
+        self.expected = {}
+        for i in range(0, len(block_tv)):
+            if block_tv[i] != block_sink[i]:
+                expected_tv = block_tv[i]
+                unexpected_sink = block_sink[i]
+                row = (i / 16) * 10
+                if i >= 16:
+                    column = hex((i % 16)) if (i % 16) != 0 else hex(0)
+                else:
+                    column = hex(i)
+                column = (column.partition("x")[2]).upper()
+                self.mismatching[str(row) + str(column)] = unexpected_sink
+                self.expected[str(row) + str(column)] = expected_tv
+                logger.debug("unexpected EDID value's position row is %s ,column is %s" % (row, column))
+            else:
+                continue
+        logger.debug("there are total %s edid block is mismatch" % (len(self.mismatching)))
+        logger.debug("there are unexpected edid values are %s and corresponding  values are %s" % (self.mismatching, self.expected))
+        return self.mismatching
+
+    def get_connected_tv_edid(self):
+        tv_data = self.tv.edid.strip()
+        tv_block = self.get_edid_block(tv_data)
+        return tv_block
+
+    def get_connected_sink_edid(self):
+        self.edid_sink = self.qd.capture_edid()
+        self.assertNotIn("Error", self.edid_sink, "can't capture sink EDID successfully and current edid is %s" % self.edid_sink)
+        sink_block = self.get_edid_block(self.edid_sink)
+        return sink_block
+
+    def test_sink_tv_edid(self):
+        """we will get failed result such as
+          unexpected edid values are {'00': '00', '01': 'FF'} and corresponding values are {'00': '11', '01': '22'} Result:FAILED
+          all values are located in dict ,key means EDID's coordinate ,value means EDID's value"""
+
+        tv_edid_block = self.get_connected_tv_edid()
+        sink_edid_block = self.get_connected_sink_edid()
+        for i in range(0, len(tv_edid_block)):
+            result = self.compare_edid(tv_edid_block[i], sink_edid_block[i])
+            self.assertFalse(result,
+                             msg="block%s unexpected edid values are %s and corresponding  values are %s" %
+                                 (i, OrderedDict(self.mismatching), OrderedDict(self.expected)))
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s %(thread)-5d [%(levelname)-8s] - %(message)s'
+    )

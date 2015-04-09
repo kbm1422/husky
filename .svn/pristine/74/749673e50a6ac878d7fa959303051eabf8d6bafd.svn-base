@@ -1,0 +1,43 @@
+<?xml version="1.0" ?>
+<TestSuite name="Boston Driver RX HDMI Test Suite">
+    <TestCase name="Sii9777Plus5vQuery" class="cases.wired.boston.test_drv_rx_hdmi.Plus5vQueryTestCase" method="test_Sii9777Plus5vQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="rx_port" value="%(rx_port)s"/>
+    </TestCase>
+    <TestCase name="Sii9777AvLinkQuery" class="cases.wired.boston.test_drv_rx_hdmi.AvLinkQueryTestCase" method="test_Sii9777AvLinkQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="av_link" value="%(av_link)s"/>
+    </TestCase>
+    <TestCase name="Sii9777AvMuteQuery" class="cases.wired.boston.test_drv_rx_hdmi.AvMuteQueryTestCase" method="test_Sii9777AvMuteQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase name="Sii9777HpdSet, Sii9777HpdGet(ON)" class="cases.wired.boston.test_drv_rx_hdmi.HpdTestCase" method="test_Sii9777HpdSet_ON">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="rx_port" value="%(rx_port)s"/>
+    </TestCase>
+    <TestCase name="Sii9777HpdSet, Sii9777HpdGet(OFF)" class="cases.wired.boston.test_drv_rx_hdmi.HpdTestCase" method="test_Sii9777HpdSet_OFF">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="rx_port" value="%(rx_port)s"/>
+    </TestCase>
+    <LinkedTestCase name="Sii9777HpdReplicateEnableSet, Sii9777HpdReplicateEnableGet" class="cases.wired.boston.test_drv_rx_hdmi.HpdReplicateEnableTestCase">
+        <Attribute name="device" value="%(device)s"/>
+    </LinkedTestCase>
+    <TestCase name="Sii9777VideoFormatQuery" class="cases.wired.boston.test_drv_rx_hdmi.VideoFormatQueryTestCase" method="test_Sii9777VideoFormatQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase name="Sii9777VideoTimingQuery" class="cases.wired.boston.test_drv_rx_hdmi.VideoTimingQueryTestCase" method="test_Sii9777VideoTimingQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase name="Sii9777AudioFormatQuery" class="cases.wired.boston.test_drv_rx_hdmi.AudioFormatQueryTestCase" method="test_Sii9777AudioFormatQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase name="Sii9777IsrcQuery" class="cases.wired.boston.test_drv_rx_hdmi.IsrcQueryTestCase" method="test_Sii9777IsrcQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase name="Sii9777AcpQuery" class="cases.wired.boston.test_drv_rx_hdmi.AcpQueryTestCase" method="test_Sii9777AcpQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase name="Sii9777SpdQuery" class="cases.wired.boston.test_drv_rx_hdmi.SpdQueryTestCase" method="test_Sii9777SpdQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+</TestSuite>

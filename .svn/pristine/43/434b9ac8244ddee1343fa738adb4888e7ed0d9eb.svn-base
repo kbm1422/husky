@@ -1,0 +1,25 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+class DeviceAdapterFactory(object):
+    @classmethod
+    def new_device_adapter(cls, **kwargs):
+        chip_name = kwargs.pop("type").lower()
+        if chip_name == "rogue":
+            from rogue import RogueDeviceAdapterFactory
+            return RogueDeviceAdapterFactory.new_rogue_device_adapter(**kwargs)
+        elif chip_name == "wolverine60":
+            from wolverine60 import Wolverine60DeviceAdapter
+            return Wolverine60DeviceAdapter(**kwargs)
+        elif chip_name == "boston":
+            from simg.devadapter.wired.boston import BostonDeviceAdapter
+            return BostonDeviceAdapter(**kwargs)
+        elif chip_name == "titan":
+            from simg.devadapter.wired.titan import TitanDeviceAdapter
+            return TitanDeviceAdapter(**kwargs)
+        else:
+            raise ValueError("Unsupported device adapter: %s" % chip_name)

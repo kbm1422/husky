@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<TestSuite name="Boston Driver Color Management System(CMS) Test Suite">
+    <TestCase class="cases.wired.boston.test_drv_video_cms.CMSBypassSetTestCase" method="test_Sii9777CmsBypassEnable">
+         <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_cms.CMSBypassSetTestCase" method="test_Sii9777CmsBypassDisable">
+         <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_cms.CMSSaturationSetTestCase" method="test_Sii9777CmsSaturationSetMin">
+         <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_cms.CMSSaturationSetTestCase" method="test_Sii9777CmsSaturationSetMax">
+         <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_cms.CMSSaturationSetTestCase" method="test_Sii9777CmsSaturationSetZero">
+         <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_cms.CMSHueSetTestCase" method="test_Sii9777CmsHueSetMin">
+         <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_cms.CMSHueSetTestCase" method="test_Sii9777CmsHueSetMax">
+         <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_cms.CMSHueSetTestCase" method="test_Sii9777CmsHueSetZero">
+         <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_cms.CMSWhitePointTempSetTestCase" method="test_Sii9777CmsWhitePointTempSetMin">
+         <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_cms.CMSWhitePointTempSetTestCase" method="test_Sii9777CmsWhitePointTempSetMax">
+         <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+</TestSuite>

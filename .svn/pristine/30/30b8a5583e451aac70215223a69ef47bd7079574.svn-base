@@ -1,0 +1,392 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import time
+import ctypes
+import threading
+
+
+from simg.devadapter import BaseDeviceAdapter, DeviceAdapterError, DeviceEndType
+from simg.devadapter.logsubject import SerialLogSubject
+from simg.pattern.observer import BaseSubject, BaseListener
+
+from Sii9777RxLib import *
+
+
+class BostonDeviceAdapter(BaseDeviceAdapter):
+    def __init__(self, comport, devport=None, **kwargs):
+        super(BostonDeviceAdapter, self).__init__(**kwargs)
+        self.devport = None if devport is None else int(devport)
+        self.log_subject = SerialLogSubject(comport, 115200)
+        self.evt_subject = BostonDriverEventSubject()
+        self.drv_instance = None
+        self.lock = threading.Lock()
+        self.__thread = None
+        self.__should_stop = threading.Event()
+
+    @property
+    def end_type(self):
+        if self.id == 0x9777:
+            return DeviceEndType.SOURCE
+        else:
+            raise ValueError
+
+    def open(self):
+        self.log_subject.open()
+        self.__should_stop.clear()
+        if self.devport is not None:
+            self.__thread = threading.Thread(target=self.__init_and_get_interrupt_for_ever)
+            self.__thread.name = threading.current_thread().name
+            self.__thread.start()
+            time.sleep(5.0)
+
+            if self.drv_instance is None:
+                raise DeviceAdapterError("Create Sii9777 instance failed")
+            # while True:
+            #     if self.drv_instance is not None:
+            #         boot_state = Sii9777BootStat_t()
+            #         Sii9777BootStatusQuery(self.drv_instance, ctypes.byref(boot_state))
+            #         if boot_state.value == SII9777_BOOT_STAT__IN_PROGRESS:
+            #             logger.debug("SII9777_BOOT_STAT__IN_PROGRESS, sleep 0.5s and retry get boot state")
+            #             time.sleep(0.5)
+            #             continue
+            #         elif boot_state.value == SII9777_BOOT_STAT__FAILURE:
+            #             self.close()
+            #             raise DeviceAdapterError("SII9777_BOOT_STAT__FAILURE")
+            #         elif boot_state.value == SII9777_BOOT_STAT__SUCCESS:
+            #             logger.debug("SII9777_BOOT_STAT__SUCCESS")
+            #             break
+            #         else:
+            #             raise DeviceAdapterError("Unsupported value of SII9777_BOOT_STAT")
+
+    def close(self):
+        self.__should_stop.set()
+        if self.__thread is not None:
+            self.__thread.join()
+            self.__thread = None
+        self.log_subject.close()
+
+    def read_register(self, offset):
+        pass
+
+    def write_register(self):
+        pass
+
+    def send_msc_message(self, type, code):
+        msg = Sii9777MscCmd_t()
+        msg.subCmd = type
+        msg.codeValue = code
+        with self.lock:
+            retcode = Sii9777CbusMscMsgSend(self.drv_instance, ctypes.byref(msg))
+        return retcode.value
+
+    def recv_msc_message(self):
+        msg = Sii9777MscCmd_t()
+        with self.lock:
+            retcode = Sii9777CbusMscMsgSend(self.drv_instance, ctypes.byref(msg))
+        return retcode, msg
+
+    def upgrade_firmware(self, filename):
+        self.__erase_flash()
+
+        with open(filename, "rb") as f:
+            flash = f.read()
+
+        logger.debug("programing start")
+        index = 0
+        total_length = len(flash)
+        slice_length = 256
+        process = None
+        for i in range(total_length/slice_length):
+            self.__write_flash_block(flash[index:(i+1)*slice_length])
+            index += slice_length
+
+            prev_process = process
+            process = int(round(float(index)/float(total_length), 2) * 100)
+            if (process % 5) == 0 and process != prev_process:
+                logger.debug("programing process: %s%%", process)
+        if total_length % slice_length > 0:
+            self.__write_flash_block(flash[index:-1])
+        logger.debug("programing done")
+
+        with self.lock:
+            Sii9777FirmwareRestart(self.drv_instance)
+        time.sleep(1.0)
+
+        while self.__query_boot_status() == SII9777_BOOT_STAT__IN_PROGRESS:
+            time.sleep(0.5)
+
+        if self.__query_boot_status() == SII9777_BOOT_STAT__FAILURE:
+            raise DeviceAdapterError("upgrade firmware failed")
+        logger.info("upgrade firmware successfully")
+
+    def __query_firmware_status(self):
+        status = Sii9777FlashStat_t()
+        with self.lock:
+            Sii9777FirmwareStatusQuery(self.drv_instance, ctypes.byref(status))
+        return status.value
+
+    def __erase_flash(self):
+        logger.debug("erase flash start")
+        with self.lock:
+            Sii9777FirmwareInit(self.drv_instance)
+
+        while True:
+            status = self.__query_firmware_status()
+            if status == SII9777_FIRMWARE_STAT__READY:
+                logger.debug("erase flash done")
+                break
+            elif status == SII9777_FIRMWARE_STAT__IN_PROGRESS:
+                logger.debug("erase flash in progress")
+                time.sleep(0.5)
+                continue
+            elif status == SII9777_FIRMWARE_STAT__FAILURE:
+                raise DeviceAdapterError("erase flash failed")
+            else:
+                pass
+
+    def __write_flash_block(self, data):
+        buff = (uint8_t*256)()
+        for i in range(256):
+            buff[i] = uint8_t(ord(data[i]))
+        with self.evt_subject.listen(SII9777_EVENT_FLAGS__FLASH_DONE) as listener:
+            with self.lock:
+                Sii9777FirmwareUpdate(self.drv_instance, buff, 0x100)
+            event = listener.get(timeout=3.0)
+            if event is None:
+                raise DeviceAdapterError
+
+        # while True:
+        #     status = self.__query_firmware_status()
+        #     if status == SII9777_FIRMWARE_STAT__READY:
+        #         logger.debug("SII9777_FIRMWARE_STAT__READY")
+        #         break
+        #     elif status == SII9777_FIRMWARE_STAT__IN_PROGRESS:
+        #         logger.debug("SII9777_FIRMWARE_STAT__IN_PROGRESS")
+        #         time.sleep(0.5)
+        #         continue
+        #     elif status == SII9777_FIRMWARE_STAT__FAILURE:
+        #         logger.debug("retry sending data: %r", data)
+        #         Sii9777FirmwareUpdate(self.drv_instance, data, 0x100)
+        #     else:
+        #         pass
+
+    def __query_boot_status(self):
+        boot_state = Sii9777BootStat_t()
+        with self.lock:
+            Sii9777BootStatusQuery(self.drv_instance, ctypes.byref(boot_state))
+        return boot_state.value
+
+    def __init_and_get_interrupt_for_ever(self):
+        if not SiiHalAardvarkCreate():
+            raise DeviceAdapterError("ERROR: I2c not available")
+
+        config = Sii9777Config_t()
+        config.pNameStr = "9777-Rx"
+        config.bIpcSemaphore = False
+        config.eventFlagsMask = 0xFFFFFFFF
+        config.gpioIoConfigMask = 0x00
+        config.gpioOutputLevelMask = 0x00
+        config.splitMode = SII9777_DUAL_LINK_MODE__LEFT_RIGHT
+        config.primTxPort = SII9777_TX_PORT__2
+        config.bEdidReplicate = False
+        config.bHpdReplicate = True
+        config.bHdcpRepeaterBit = False
+
+        func = Sii9777EventCallbackFunc_t(self.evt_subject.event_callback)
+        self.drv_instance = Sii9777Create(0, func, ctypes.byref(config))
+        if not self.drv_instance:
+            raise DeviceAdapterError("Call driver api SiiDrvAdaptCreate failed!!!")
+
+        while not self.__should_stop.is_set():
+            with self.lock:
+                if SiiHalAardvarkInterruptQuery():
+                    Sii9777Handle(self.drv_instance)
+            time.sleep(0.1)
+
+        Sii9777Delete(self.drv_instance)
+        SiiHalAardvarkDelete()
+
+
+DRIVEVR_EVENT_MAPPER = {
+    SII9777_EVENT_FLAGS__BOOT_DONE: "SII9777_EVENT_FLAGS__BOOT_DONE",                                       # 1
+    SII9777_EVENT_FLAGS__FLASH_DONE: "SII9777_EVENT_FLAGS__FLASH_DONE",                                     # 2
+    SII9777_EVENT_FLAGS__PLUS_5V_CHNG: "SII9777_EVENT_FLAGS__PLUS_5V_CHNG",                                 # 16
+    SII9777_EVENT_FLAGS__EDID_CHNG: "SII9777_EVENT_FLAGS__EDID_CHNG",                                       # 32
+    SII9777_EVENT_FLAGS__HPD_CHNG: "SII9777_EVENT_FLAGS__HPD_CHNG",                                         # 64
+    SII9777_EVENT_FLAGS__AV_LINK_CHNG: "SII9777_EVENT_FLAGS__AV_LINK_CHNG",                                 # 128
+    SII9777_EVENT_FLAGS__AV_MUTE_CHNG: "SII9777_EVENT_FLAGS__AV_MUTE_CHNG",                                 # 256
+    SII9777_EVENT_FLAGS__VIDEO_TIMING_CHNG: "SII9777_EVENT_FLAGS__VIDEO_TIMING_CHNG",                       # 512
+    SII9777_EVENT_FLAGS__VIDEO_FMT_CHNG: "SII9777_EVENT_FLAGS__VIDEO_FMT_CHNG",                             # 1024
+    SII9777_EVENT_FLAGS__AUDIO_FMT_CHNG: "SII9777_EVENT_FLAGS__AUDIO_FMT_CHNG",                             # 2048
+    SII9777_EVENT_FLAGS__ISRC_CHNG: "SII9777_EVENT_FLAGS__ISRC_CHNG",                                       # 4096
+    SII9777_EVENT_FLAGS__ACP_CHNG: "SII9777_EVENT_FLAGS__ACP_CHNG",                                         # 8192
+    SII9777_EVENT_FLAGS__SPD_CHNG: "SII9777_EVENT_FLAGS__SPD_CHNG",                                         # 16384
+    SII9777_EVENT_FLAGS__HDCP_STREAM_CHNG: "SII9777_EVENT_FLAGS__HDCP_STREAM_CHNG",                         # 32768
+    SII9777_EVENT_FLAGS__HDCP_STATUS_CHNG: "SII9777_EVENT_FLAGS__HDCP_STATUS_CHNG",                         # 65536
+    SII9777_EVENT_FLAGS__CD_SENSE_CHNG: "SII9777_EVENT_FLAGS__CD_SENSE_CHNG",                               # 131072
+    SII9777_EVENT_FLAGS__MHL_VERSION_CHNG: "SII9777_EVENT_FLAGS__MHL_VERSION_CHNG",                         # 262144
+    SII9777_EVENT_FLAGS__CBUS_EVENT: "SII9777_EVENT_FLAGS__CBUS_EVENT",                                     # 1048576
+    SII9777_EVENT_FLAGS__VBUS_REQUEST: "SII9777_EVENT_FLAGS__VBUS_REQUEST",                                 # 2097152
+    SII9777_EVENT_FLAGS__DUAL_LINK_CHNG: "SII9777_EVENT_FLAGS__DUAL_LINK_CHNG",                             # 4194304
+}
+
+
+class BostonDriverEventListener(BaseListener):
+    def __repr__(self):
+        return "<%s %s(%s)>" % (self.__class__.__name__, DRIVEVR_EVENT_MAPPER[self.keyword], self.keyword)
+
+
+class BostonDriverEventSubject(BaseSubject):
+    Listener = BostonDriverEventListener
+
+    def __init__(self):
+        super(BostonDriverEventSubject, self).__init__()
+
+    def __notify(self, etype, flag):
+        logger.debug("RECV EVENT: %s", DRIVEVR_EVENT_MAPPER[etype])
+        for listener in self._listeners:
+            if listener.keyword == etype:
+                listener.queue.put(flag)
+
+    def event_callback(self, instance, flag):
+        if flag & SII9777_EVENT_FLAGS__BOOT_DONE:
+            self.__notify(SII9777_EVENT_FLAGS__BOOT_DONE, flag)
+
+        if flag & SII9777_EVENT_FLAGS__FLASH_DONE:
+            self.__notify(SII9777_EVENT_FLAGS__FLASH_DONE, flag)
+
+        if flag & SII9777_EVENT_FLAGS__PLUS_5V_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__PLUS_5V_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__EDID_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__EDID_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__HPD_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__HPD_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__AV_LINK_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__AV_LINK_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__AV_MUTE_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__AV_MUTE_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__VIDEO_TIMING_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__VIDEO_TIMING_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__VIDEO_FMT_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__VIDEO_FMT_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__AUDIO_FMT_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__AUDIO_FMT_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__ISRC_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__ISRC_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__ACP_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__ACP_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__SPD_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__SPD_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__HDCP_STREAM_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__HDCP_STREAM_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__HDCP_STATUS_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__HDCP_STATUS_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__CD_SENSE_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__CD_SENSE_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__MHL_VERSION_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__MHL_VERSION_CHNG, flag)
+
+        if flag & SII9777_EVENT_FLAGS__CBUS_EVENT:
+            self.__notify(SII9777_EVENT_FLAGS__CBUS_EVENT, flag)
+
+        if flag & SII9777_EVENT_FLAGS__VBUS_REQUEST:
+            self.__notify(SII9777_EVENT_FLAGS__VBUS_REQUEST, flag)
+
+        if flag & SII9777_EVENT_FLAGS__DUAL_LINK_CHNG:
+            self.__notify(SII9777_EVENT_FLAGS__DUAL_LINK_CHNG, flag)
+
+
+from simg.devadapter.wired.aardvark_py import *
+class __Obsolete_BostonDeviceAdapter(object):
+    DEVICE_ID = 0x40
+    ADDRESS_WIDTH = 16
+
+    def __init__(self, type, id, comport, devport=None):
+        self.type = type
+        self.id = id if isinstance(id, int) else int(id, 16)
+        self.devport = None if devport is None else int(devport)
+        self._aa_handle = None
+        self.log_subject = SerialLogSubject(comport, 115200)
+
+    def open(self):
+        self.log_subject.open()
+        if self.devport is not None:
+            self._aa_handle = aa_open(self.devport)
+            if self._aa_handle <= 0:
+                raise ValueError("Unable to open Aardvark device on port %d" % self.devport)
+
+            aa_configure(self._aa_handle, AA_CONFIG_GPIO_I2C)
+            aa_target_power(self._aa_handle, 0)
+            aa_i2c_pullup(self._aa_handle, 0)
+            aa_i2c_bitrate(self._aa_handle, 400)
+            aa_i2c_bus_timeout(self._aa_handle, 150)
+
+    def close(self):
+        if self._aa_handle is not None:
+            aa_close(self._aa_handle)
+            self._aa_handle = None
+        self.log_subject.close()
+
+    def read_register(self, data_width, offset):
+        index = 0
+        w_data = array_u08(self.ADDRESS_WIDTH >> 3)
+
+        # offset = page_offset + register_offset
+        # if self.ADDRESS_WIDTH == 0x20:
+        #     index += 1
+        #     buffer1[index] = offset >> 0x18
+        # if self.ADDRESS_WIDTH >= 0x18:
+        #     index += 1
+        #     buffer1[index] = offset >> 0x10
+        # if self.ADDRESS_WIDTH >= 0x10:
+        #     index += 1
+        #     buffer1[index] = offset >> 0x08
+        index += 1
+        w_data[index] = offset     # FIXME
+        aa_i2c_write(self._aa_handle, self.DEVICE_ID >> 1, AA_I2C_NO_STOP, w_data)
+
+        r_data = array_u08(data_width >> 3)
+        aa_i2c_read(self._aa_handle, self.DEVICE_ID >> 1, AA_I2C_NO_FLAGS, r_data)
+
+        num = 0
+        for i in range(data_width >> 3):
+            num |= r_data[i] << (i << 3)
+        return num
+
+    def write_register(self, data_width, offset, data):
+        index = 0
+        num = data_width >> 3
+        w_data = array_u08(self.ADDRESS_WIDTH >> 3 + num)
+        w_data[index+1] = offset      # FIXME
+
+        for i in range(num):
+            index += 1
+            w_data[index] = data >> (i << 3)
+
+        aa_i2c_write(self._aa_handle, self.DEVICE_ID >> 1, AA_I2C_NO_FLAGS, w_data)
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s - %(thread)-5d [%(levelname)-8s] - %(message)s',
+    )
+
+    # serial log enable: 00410DA5

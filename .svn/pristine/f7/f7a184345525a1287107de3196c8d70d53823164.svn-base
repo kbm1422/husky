@@ -1,0 +1,225 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import time
+from ctypes import byref
+from base import BaseBostonDriverTestCase, HDCP_STATUS_MAPPER, RX_PORT_MAPPER
+from simg.test.framework import name, parametrize, skip, LinkedTestCase
+from simg.util.zip import retrieve_struct
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+
+
+@name("Sii9777HdcpDdcSet, Sii9777HdcpDdcGet")
+@parametrize("rx_port", type=str, choice=RX_PORT_MAPPER.keys())
+class HdcpDdcTestCase(LinkedTestCase, BaseBostonDriverTestCase):
+    methodNames = (
+        "test_golden_hdcp_ddc",
+        "test_Sii9777HdcpDdcSet_OFF",
+    )
+
+    def setUp(self):
+        self.__rx_port = Sii9777RxPort_t()
+
+    def tearDown(self):
+        pbDdc = bool_t(True)
+        with self.device.lock:
+            Sii9777HdcpDdcSet(self.device.drv_instance, self.__rx_port, byref(pbDdc))
+        time.sleep(5)
+
+    def test_golden_hdcp_ddc(self):
+        pbDdc = bool_t()
+        with self.device.lock:
+            Sii9777HdcpDdcGet(self.device.drv_instance, self.__rx_port, byref(pbDdc))
+        self.assertTrue(pbDdc.value, "HDCP DDC golden value should be True")
+
+    def test_Sii9777HdcpDdcSet_OFF(self):
+        pbDdc = bool_t(False)
+        rx_port = Sii9777RxPort_t(RX_PORT_MAPPER[self.rx_port])
+        with self.device.lock:
+            retcode = Sii9777HdcpDdcSet(self.device.drv_instance, rx_port, byref(pbDdc))
+        self._test_api_retcode("Sii9777HdcpDdcSet", retcode)
+
+        pbDdc = bool_t()
+        with self.device.lock:
+            retcode = Sii9777HdcpDdcGet(self.device.drv_instance, rx_port, byref(pbDdc))
+        self._test_api_retcode("Sii9777HdcpDdcGet", retcode)
+        self.assertFalse(pbDdc.value, "Set Hdcp Ddc False should be successfully.")
+
+
+class HdcpStreamManageInfoQueryTestCase(BaseBostonDriverTestCase):
+    @name("Sii9777HdcpStreamManageInfoQuery")
+    def test_Sii9777HdcpStreamManageInfoQuery(self):
+        # seqNumM = 0x03F40192
+        # k = 0x0103
+        # streamIdType = [0xF401, 0x0192, 0x0006, 0x7C10]
+        pStreamManageInfo = Sii9777HdcpStreamManageInfo_t()
+        with self.device.lock:
+            retcode = Sii9777HdcpStreamManageInfoQuery(self.device.drv_instance, byref(pStreamManageInfo))
+        self._test_api_retcode("Sii9777HdcpStreamManageInfoQuery", retcode)
+
+        fields = retrieve_struct(pStreamManageInfo)
+        logger.debug("HdcpStreamManageInfo: %s", fields)
+        self._warn("Don't know how to verify the value, current HdcpStreamManageInfo: %s" % fields)
+
+
+class RxHdcpBksvOwnQueryTestCase(BaseBostonDriverTestCase):
+    @name("Sii9777RxHdcpBksvOwnQuery")
+    def test_Sii9777RxHdcpBksvOwnQuery(self):
+        # golden = [0xD8, 0x1F, 0x96, 0x91, 0xC9]
+        ksv = Sii9777HdcpKsv_t()
+        with self.device.lock:
+            retcode = Sii9777RxHdcpBksvOwnQuery(self.device.drv_instance, byref(ksv))
+        self._test_api_retcode("Sii9777RxHdcpBksvOwnQuery", retcode)
+        self._warn("don't know how to verify the value, current BksvOwn: %s" % [ksv.b[index] for index in range(5)])
+
+
+class RxHdcpRxIdOwnQueryTestCase(BaseBostonDriverTestCase):
+    @name("Sii9777RxHdcpRxIdOwnQuery")
+    def test_Sii9777RxHdcpRxIdOwnQuery(self):
+        # golden = [0xBB, 0x59, 0x39, 0x04, 0xA7]
+        ksv = Sii9777HdcpKsv_t()
+        with self.device.lock:
+            retcode = Sii9777RxHdcpRxIdOwnQuery(self.device.drv_instance, byref(ksv))
+        self._test_api_retcode("Sii9777RxHdcpRxIdOwnQuery", retcode)
+        self._warn("don't know how to verify the value, current HdcpRxIdOwn: %s" % [ksv.b[index] for index in range(5)])
+
+
+@name("Sii9777HdcpStatusQuery %(expect_hdcp_status)s")
+@parametrize("expect_hdcp_status", type=str, choice=HDCP_STATUS_MAPPER.keys())
+class HdcpStatusQueryTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777HdcpStatusQuery(self):
+        pHdcpStat = Sii9777HdcpStatus_t()
+        with self.device.lock:
+            retcode = Sii9777HdcpStatusQuery(self.device.drv_instance, byref(pHdcpStat))
+        self._test_api_retcode("Sii9777HdcpStatusQuery", retcode)
+        self.assertEqual(pHdcpStat.value, HDCP_STATUS_MAPPER[self.expect_hdcp_status],
+                         msg="Current HDCP status should be in {0}".format(self.expect_hdcp_status))
+
+@name("Sii9777HdcpRepeaterEnableSet, Sii9777HdcpRepeaterEnableGet")
+class HdcpRepeaterEnableTestCase(LinkedTestCase, BaseBostonDriverTestCase):
+    methodNames = (
+        "test_golden_hdcp_repeater_enable",
+        "test_Sii9777HdcpRepeaterEnableSet"
+    )
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777HdcpRepeaterEnableSet(self.device.drv_instance, bool_t(False))
+        time.sleep(5)
+
+    def test_golden_hdcp_repeater_enable(self):
+        pbOn = bool_t()
+        with self.device.lock:
+            Sii9777HdcpRepeaterEnableGet(self.device.drv_instance, pbOn)
+        self.assertFalse(pbOn, msg="golden hdcp repeater is enabled should be False")
+
+    def test_Sii9777HdcpRepeaterEnableSet(self):
+        pbOn = bool_t(True)
+        with self.device.lock:
+            retcode = Sii9777HdcpRepeaterEnableSet(self.device.drv_instance, byref(pbOn))
+        self._test_api_retcode("Sii9777HdcpRepeaterEnableSet", retcode)
+
+        pbOn = bool_t()
+        with self.device.lock:
+            retcode = Sii9777HdcpRepeaterEnableGet(self.device.drv_instance, pbOn)
+        self._test_api_retcode("Sii9777HdcpRepeaterEnableGet", retcode)
+        self.assertTrue(pbOn, msg="set hdcp repeater enable should successfully.")
+
+
+
+@name("Sii9777HdcpBksvRxidListSet, Sii9777HdcpBksvRxidListGet")
+@skip("TODO: Invalid BSKV set by Siimon, don't know the correct value ")
+class HdcpBksvRxidListTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777HdcpBksvRxidListSet and Sii9777HdcpBksvRxidListGet.
+    Steps:
+        1. setUp: Invoke Sii9777HdcpBksvRxidListGet to get initial pBksvList structure and bksv list len.
+        2. Set pBksvList structure and bksv list len from xml, call Sii9777HdcpBksvRxidListSet.
+           Check point: return code of Sii9777HdcpBksvRxidListSet.
+        3. Get the current pBksvList structure and bksv list len by invoking Sii9777HdcpBksvRxidListGet.
+           Check point: a) return code of Sii9777HdcpBksvRxidListGet.
+                        b) The value of structure pBksvList and bksv list len should be equal to set.
+        4. tearDown: Invoke Sii9777HdcpBksvRxidListSet to set back the value of initial pBksvList structure and bksv
+                     list len.
+    """
+
+    def setUp(self):
+        self.__pBksvList = Sii9777HdcpKsv_t()
+        self.__bksv_list_len = uint8_t()
+        with self.device.lock:
+            Sii9777HdcpBksvRxidListGet(self.device.drv_instance, byref(self.__pBksvList), self.__bksv_list_len)
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777HdcpBksvRxidListSet(self.device.drv_instance, byref(self.__pBksvList), self.__bksv_list_len)
+
+    def test_Sii9777HdcpBksvRxidListSet(self):
+        expect_ksv = Sii9777HdcpKsv_t()
+        for index in range(5):
+            expect_ksv.b[index] = uint8_t(self.expect_ksv_b[index])
+        with self.device.lock:
+            retcode_set = Sii9777HdcpBksvRxidListSet(self.device.drv_instance, byref(expect_ksv), uint8_t(5))
+        self._test_api_retcode("Sii9777HdcpBksvRxidListSet", retcode_set)
+
+        actual_ksv = Sii9777HdcpKsv_t()
+        with self.device.lock:
+            retcode_get = Sii9777HdcpBksvRxidListGet(self.device.drv_instance, byref(actual_ksv), uint8_t(5))
+        self._test_api_retcode("Sii9777HdcpBksvRxidListGet", retcode_get)
+
+        actual_ksv_b = [actual_ksv.b[index] for index in range(5)]
+
+        self.assertSequenceEqual(actual_ksv_b, self.expect_ksv_b,
+                                 msg="HdcpBksvRxidList should be {0}".format(self.expect_ksv_b))
+
+
+@name("Sii9777HdcpTopologySet, Sii9777HdcpTopologyGet")
+class HdcpTopologyTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        self.__pTopology = Sii9777HdcpTopology_t()
+        with self.device.lock:
+            Sii9777HdcpTopologyGet(self.device.drv_instance, byref(self.__pTopology))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777HdcpTopologySet(self.device.drv_instance, byref(self.__pTopology))
+
+    def test_Sii9777HdcpTopologySet(self):
+        pTopology = Sii9777HdcpTopology_t()
+        pTopology.bHdcp1DeviceDs = bool_t(True)
+        pTopology.bHdcp20RepeaterDs = bool_t(True)
+        pTopology.bMaxCascadeExceeded = bool_t(True)
+        pTopology.bMaxDevsExceeded = bool_t(True)
+        pTopology.deviceCount = uint8_t(0x03)
+        pTopology.depth = uint8_t(0x03)
+        pTopology.seqNumV = uint32_t(0x00000010)
+
+        expect = [getattr(pTopology, field[0]) for field in Sii9777HdcpTopology_t._fields_]
+
+        with self.device.lock:
+            retcode_set = Sii9777HdcpTopologySet(self.device.drv_instance, byref(pTopology))
+        self._test_api_retcode("Sii9777HdcpTopologySet", retcode_set)
+
+        pTopology = Sii9777HdcpTopology_t()
+        with self.device.lock:
+            retcode_get = Sii9777HdcpTopologyGet(self.device.drv_instance, byref(pTopology))
+        self._test_api_retcode("Sii9777HdcpTopologyGet", retcode_get)
+
+        actual = [getattr(pTopology, field[0]) for field in Sii9777HdcpTopology_t._fields_]
+        self.assertSequenceEqual(actual, expect, "Sii9777HdcpTopologySet %s should successfully" % expect)
+
+
+__test_suite__ = {
+    "name": "Boston Driver RX HDCP Test Suite",
+    "subs": [
+        HdcpDdcTestCase,
+        HdcpStreamManageInfoQueryTestCase,
+        RxHdcpBksvOwnQueryTestCase,
+        RxHdcpRxIdOwnQueryTestCase,
+        HdcpRepeaterEnableTestCase,
+        HdcpBksvRxidListTestCase,
+        HdcpTopologyTestCase
+    ]
+}

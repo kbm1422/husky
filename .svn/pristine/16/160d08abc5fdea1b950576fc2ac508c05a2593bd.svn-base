@@ -1,0 +1,305 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+
+def singleton(cls):
+    """
+    See <Singleton> design pattern for detail: http://www.oodesign.com/singleton-pattern.html
+    Python <Singleton> reference: http://stackoverflow.com/questions/6760685/creating-a-singleton-in-python
+    Recommend use Singleton as a metaclass
+
+    Usage:
+        @singleton
+        class MyClass(object):
+            pass
+    """
+    instances = {}
+
+    def getinstance(*args, **kwargs):
+        if cls not in instances:
+            instances[cls] = cls(*args, **kwargs)
+        return instances[cls]
+    return getinstance
+
+
+class Singleton(type):
+    """
+    Usage:
+        class MyClass(object):
+            __metaclass__ = Singleton
+    """
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+import collections
+import threading
+import time
+from abc import ABCMeta, abstractproperty
+
+
+class NotReadyError(Exception):
+    pass
+
+
+class NotExistError(Exception):
+    pass
+
+
+class FullError(Exception):
+    pass
+
+
+class KeywordObjectPool(object):
+    """
+    See <Object Pool> design pattern for detail: http://www.oodesign.com/object-pool-pattern.html
+
+    Usage:
+        1. Define a subclass
+        2. Specify static property 'objclass' which indicate the object type
+        3. Use @singleton decorate the subclass, can NOT use Singleton metaclass becuase it will raise below exception:
+           TypeError: Error when calling the metaclass bases
+               metaclass conflict: the metaclass of a derived class must be a (non-strict) subclass of the metaclasses of all its bases
+    Sample:
+        @singleton
+        class TestResourcePool(KeywordObjectPool):
+            objclass = TestResource
+    """
+    __metaclass__ = ABCMeta
+
+
+
+    @abstractproperty
+    def objclass(self):
+        pass
+
+    def __init__(self, maxsize=0):
+        self.maxsize = maxsize
+        self.__odict = collections.OrderedDict()
+        self.__conditions = {}
+        self.__del_events = {}
+        self.__mutex_odict = threading.RLock()
+
+    def put(self, key, obj, block=True, timeout=None):
+        with self.__mutex_odict:
+            if key in self.__odict:
+                del self.__odict[key]
+                self.__conditions.pop(key).notify_all()
+            self._put(key, obj, block, timeout)
+
+    def remove(self, key, block=True, timeout=None):
+        """
+        1. check whether item(key, obj) is in self.__odict,
+            a) if exists, remove it and return
+            b) if not exists, goto step2
+        2. check whether key is in self.__conditions:
+            a) if exists, it means the item(key, obj) is using and not released. do following steps:
+                1) create a delete event, put it into self.__delevents
+                2) waiting this event consumed and set by self._put() method
+                    i  ) if block is not True, raise NotReadyError
+                    ii ) if timeout is not None, if time out is reached, raise NotReadyError
+                    iii) if block is True and timeout is None, waiting until the event has been set and return
+            b) if not exists, it means item has already been removed, raise NotReadyError
+        """
+        with self.__mutex_odict:
+            if key in self.__odict:
+                del self.__odict[key]
+                self.__conditions.pop(key).notify_all()
+                return
+
+        if key in self.__conditions:
+            if key not in self.__del_events:
+                self.__del_events[key] = threading.Event()
+            event = self.__del_events[key]
+            if not block:
+                if not event.is_set():
+                    raise NotExistError
+            elif timeout is None:
+                while not event.is_set():
+                    event.wait()
+            elif timeout < 0:
+                raise ValueError("'timeout' must be a non-negative number")
+            else:
+                endtime = time.time() + timeout
+                while not event.is_set():
+                    remaining = endtime - time.time()
+                    if remaining <= 0.0:
+                        raise NotReadyError
+                    event.wait(remaining)
+        else:
+            raise NotExistError
+
+    def acquire(self, key=None, block=True, timeout=None):
+        if key is None:
+            return self._pop(block, timeout)
+        else:
+            return self._get(key, block, timeout)
+
+    def release(self, key, obj, block=True, timeout=None):
+        with self.__mutex_odict:
+            if key not in self.__odict:
+                self._put(key, obj, block, timeout)
+
+    def size(self):
+        with self.__mutex_odict:
+            n = len(self.__odict)
+            return n
+
+    def is_empty(self):
+        return not self.size()
+
+    def is_full(self):
+        return 0 < self.maxsize == self.size()
+
+    def _pop(self, last=False, block=True, timeout=None):
+        if not block:
+            with self.__mutex_odict:
+                if not len(self.__odict):
+                    raise NotReadyError
+                else:
+                    key, obj = self.__odict.popitem(last)
+                    return key, obj
+        else:
+            if timeout:
+                starttime = time.time()
+
+            while True:
+                self.__mutex_odict.acquire()
+                try:
+                    if not len(self.__odict):
+                        time.sleep(0.1)
+                        continue
+                    else:
+                        key, obj = self.__odict.popitem(last)
+                        return key, obj
+
+                    if timeout and time.time() - starttime > timeout:
+                        raise NotReadyError
+                finally:
+                    self.__mutex_odict.release()
+
+    def _get(self, key, block=True, timeout=None):
+        if key not in self.__conditions:
+            raise NotExistError
+
+        condition = self.__conditions[key]
+        condition.acquire()
+        try:
+            if not block:
+                if key not in self.__odict:
+                    raise NotReadyError
+            elif timeout is None:
+                while key not in self.__odict:
+                    if key in self.__conditions:
+                        condition.wait()
+                    else:
+                        raise NotExistError
+            elif timeout < 0:
+                raise ValueError("'timeout' must be a non-negative number")
+            else:
+                endtime = time.time() + timeout
+                while key not in self.__odict:
+                    if key in self.__conditions:
+                        remaining = endtime - time.time()
+                        if remaining <= 0.0:
+                            raise NotReadyError
+                        condition.wait(remaining)
+                    else:
+                        raise NotExistError
+
+            obj = self.__odict.pop(key)
+            return key, obj
+        finally:
+            condition.release()
+
+    def _put(self, key, obj, block=True, timeout=None):
+        """
+        1. check whether the item(key, obj) should be removed
+        2. if it should be removed:
+            a) don't put item back into self.__odict
+            b) notify all threads which are waiting for the item, these threads raise NotExistError because the item is not exists
+            c) pop the event from the self.__del_events and then set it, so the self.remove method will get the event
+        """
+        if not (isinstance(obj, self.objclass) or issubclass(obj.__class__, self.objclass)):
+            raise TypeError("The obj is not a instance or a subclass instance of %s" % self.objclass)
+
+        if key in self.__del_events:
+            self.__conditions.pop(key).notify_all()
+            self.__del_events.pop(key).set()
+        else:
+            if key not in self.__conditions:
+                self.__conditions[key] = threading.Condition(self.__mutex_odict)
+
+            condition = self.__conditions[key]
+            condition.acquire()
+            try:
+                if self.maxsize > 0:
+                    if not block:
+                        if self.size() == self.maxsize:
+                            raise FullError
+                    elif timeout is None:
+                        while self.size() == self.maxsize:
+                            condition.wait()
+                    elif timeout < 0:
+                        raise ValueError("'timeout' must be a non-negative number")
+                    else:
+                        endtime = time.time() + timeout
+                        while self.size() == self.maxsize:
+                            remaining = endtime - time.time()
+                            if remaining <= 0.0:
+                                raise FullError
+                            condition.wait(remaining)
+                self.__odict[key] = obj
+                condition.notify()
+            finally:
+                condition.release()
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s [%(levelname)-8s] - %(message)s'
+    )
+
+    @singleton
+    class Pool(KeywordObjectPool):
+        #__metaclass__ = Singleton
+        objclass = str
+
+
+    @singleton
+    class PoolX(KeywordObjectPool):
+        #__metaclass__ = Singleton
+        objclass = int
+
+    p1 = Pool()
+    p1.put("t1", "tb")
+
+    p2 = Pool()
+    print p1, p2, p1.objclass
+
+    p3 = PoolX()
+    p3.put("t1", 11)
+
+    p4 = PoolX()
+    print p3, p4, p4.objclass
+
+
+
+    # class BaseSingleton(object):
+    #     """
+    #     Multiple inheritance - eugh! __new__ could be overwritten during inheritance from a second base class?
+    #     Have to think more than is necessary.
+    #     """
+    #     _instance = None
+    #
+    #     def __new__(cls, *args, **kwargs):
+    #         if not isinstance(cls._instance, cls):
+    #             cls._instance = object.__new__(cls, *args, **kwargs)
+    #         return cls._instance

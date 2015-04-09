@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestDescription>
+  <Summary>JAX Whitelist Test</Summary>
+  <!--
+    sendout:       optional, default true
+    attempt:       optional, default is 3
+    smtpserver:    optional, default is 172.25.0.3
+    sender:        optional, default is sqagroup@siliconimage.com
+    recevers:      required, using semicolon(;) as the the separator
+    -->
+  <MailReport sendout="true" attempt="3" smtpserver="172.25.0.3" sender="sqagroup@siliconimage.com" receivers="rui.ji@siliconimage.com" />
+  <TestRunner>
+    <!--
+        rsrcname: resource name which match with the name defined in resource.xml
+        -->
+    <TestContext rsrcname="JAX1"></TestContext>
+    <TestDefinition>
+      <!--define a test suite directly-->
+      <!-- a sample suite definition, which only include one case-->
+      <TestSuite name="JAX_whitelist">
+        <For list="range(1)" type="expression">
+          <TestCase class="cases.wireless.jax.test_whitelist.WhitelistTestCase" method="test_set_tx_whitelist" />
+        </For>
+         <For list="range(1)" type="expression">
+          <TestCase class="cases.wireless.jax.test_whitelist.WhitelistTestCase" method="test_set_not_tx_whitelist" />
+        </For>
+        <!--<For list="range(100)" type="expression">-->
+          <!--<TestCase class="cases.wireless.jax.test_reset.ResetTestCase" method="test_sink_reset" />-->
+        <!--</For>-->
+        <!--<For list="range(100)" type="expression">-->
+          <!--<TestCase class="cases.wireless.jax.test_reset.ResetTestCase" method="test_both_reset" />-->
+        <!--</For>-->
+        <!--<For list="range(100)" type="expression">-->
+          <!--<TestCase class="cases.wireless.jax.test_reset.ResetTestCase" method="test_source_nvramreset" />-->
+        <!--</For>-->
+        <!--<For list="range(100)" type="expression">-->
+          <!--<TestCase class="cases.wireless.jax.test_reset.ResetTestCase" method="test_sink_nvramreset" />-->
+        <!--</For>-->
+      </TestSuite>
+    </TestDefinition>
+  </TestRunner>
+</TestDescription>

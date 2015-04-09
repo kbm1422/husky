@@ -1,0 +1,129 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import time
+import serial
+import threading
+
+from abc import ABCMeta, abstractmethod
+from simg.pattern.observer import BaseSubject, BaseListener
+
+
+class BaseLogSubject(BaseSubject):
+    __metaclass__ = ABCMeta
+
+    def __init__(self):
+        BaseSubject.__init__(self)
+        self._should_stop = threading.Event()
+        self._thread = None
+
+    def open(self):
+        self._should_stop.clear()
+        self._thread = threading.Thread(target=self._notify)
+        # framework using runner name to collect case log, if not set the runner sub-thread name same as the runner name
+        # this sub-thread's log will not be add into case log file
+        self._thread.name = threading.current_thread().name
+        self._thread.start()
+
+    def close(self):
+        self._should_stop.set()
+        if self._thread:
+            self._thread.join()
+
+    @abstractmethod
+    def _notify(self):
+        pass
+
+
+class SerialLogListener(BaseListener):
+    pass
+
+
+class SerialLogSubject(BaseLogSubject):
+    Listener = SerialLogListener
+
+    def __init__(self, comport, baudrate=19200, logname=None):
+        BaseLogSubject.__init__(self)
+        self.__serial = serial.Serial()
+        self.__serial.port = comport
+        self.__serial.baudrate = baudrate
+        self.logname = logname
+
+    def open(self):
+        self.__serial.open()
+        BaseLogSubject.open(self)
+
+    def close(self):
+        BaseLogSubject.close(self)
+        self.__serial.close()
+
+    def _notify(self):
+        s = ""
+        while not self._should_stop.is_set():
+            num_of_bytes = self.__serial.inWaiting()
+            if num_of_bytes > 0:
+                r = self.__serial.read(num_of_bytes)
+                if self.logname is not None:
+                    with open(self.logname, "a") as logfile:
+                        logfile.write(r)
+
+                s += r
+                if s.endswith("\n") or r.startswith("\r\n"):    # s.startswith("\r\n") is for boston device log
+                    logger.debug("%s CHIP LOG:\n%s", self.__serial.port, s.replace("\r", ""))
+                    for line in s.split("\n"):
+                        with self._lock:
+                            for listener in self._listeners:
+                                if listener.keyword is None or listener.keyword in line:
+                                    listener.queue.put(line)
+                    s = ""
+                else:
+                    continue
+            time.sleep(0.5)
+
+    def __repr__(self):
+        return "<%s '%s'>" % (self.__class__.__name__, self.__serial.port)
+
+    def __str__(self):
+        return self.__repr__()
+
+
+class FileLogListener(BaseListener):
+    pass
+
+
+class FileLogSubject(BaseLogSubject):
+    Listener = FileLogListener
+
+    def __init__(self, logname):
+        BaseLogSubject.__init__(self)
+        self.logname = logname
+
+    def _notify(self):
+        lineno = 0
+        while not self._should_stop.is_set():
+            with open(self.logname, "r") as logfile:
+                lines = logfile.readlines()
+
+            for index in range(lineno, len(lines)):
+                line = lines[index]
+                with self._lock:
+                    for listener in self._listeners:
+                        if listener.keyword in line:
+                            listener.queue.put(line)
+            lineno = len(lines)
+            time.sleep(0.5)
+
+    def __repr__(self):
+        return "<%s '%s'>" % (self.__class__.__name__, self.logname)
+
+    def __str__(self):
+        return self.__repr__()
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s [%(levelname)-8s] - %(message)s'
+    )

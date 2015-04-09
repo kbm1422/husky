@@ -1,0 +1,139 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import time
+import threading
+
+from simg.pattern import Singleton
+from .resource import TestResource
+from .runner import TestRunner
+
+
+class TestLoop(threading.Thread):
+    __metaclass__ = Singleton
+
+    def __init__(self):
+        super(TestLoop, self).__init__()
+        self.__lock = threading.Lock()
+        self.__non_key = "__NONE__"
+        self.__waiting_runners = {self.__non_key: []}
+        self.__running_runners = {}
+        self.__all_resources = {}
+        self.__occupied_resources = {}
+        self.__should_stop = threading.Event()
+        self.__callbacks = {"on_runner_stopped": [], "on_runner_running": []}
+
+    # @classmethod
+    # def instance(cls, *args, **kwargs):
+    #     if cls.__instance is None:
+    #         cls.__lock.acquire()
+    #         try:
+    #             if cls.__instance is None:
+    #                 cls.__instance = cls(*args, **kwargs)
+    #         finally:
+    #             cls.__lock.release()
+    #     return cls.__instance
+
+    def get_all_resource_states(self):
+        with self.__lock:
+            states = {name: "IDLE" for name in self.__all_resources.keys()}
+            for name in self.__occupied_resources.keys():
+                states[name] = "BUSY"
+        return states
+
+    def add_resource(self, name, obj):
+        if not isinstance(obj, TestResource) or not issubclass(obj.__class__, TestResource):
+            raise TypeError("Param 'obj' should be TestResource")
+        with self.__lock:
+            if name not in self.__waiting_runners:
+                self.__waiting_runners[name] = []
+            self.__all_resources[name] = obj
+
+    def register_runner(self, runner, priority=1):
+        rsrcname = self.__non_key if runner.context.rsrcname is None else runner.context.rsrcname
+        logger.debug("Register runner: %s, priority=%s, rsrcname=%s", runner, priority, rsrcname)
+
+        runner.priority = priority
+        with self.__lock:
+            # make sure the runner is unique in all self.__waiting_runners, remove it first, and then add it.
+            for key, runners in self.__waiting_runners.items():
+                self.__waiting_runners[key] = filter(lambda x: x != runner, runners)
+
+            self.__waiting_runners[rsrcname].append(runner)
+            self.__waiting_runners[rsrcname] = sorted(self.__waiting_runners[rsrcname], key=lambda x: x.priority)
+        runner.status = TestRunner.Status.PENDING
+
+    def unregister_runner(self, runner):
+        rsrcname = self.__non_key if runner.context.rsrcname is None else runner.context.rsrcname
+        logger.debug("Unregister runner: %s, rsrcname=%s", runner, rsrcname)
+
+        with self.__lock:
+            if runner in self.__waiting_runners[rsrcname]:
+                self.__waiting_runners[rsrcname].remove(runner)
+                runner.status = runner.Status.INITIAL
+
+            if runner in self.__running_runners[rsrcname]:
+                runner.abort()
+                self.__running_runners[rsrcname].remove(runner)
+
+    def __allocate(self, runner_key_is_none):
+        for key in set(self.__all_resources.keys()) - set(self.__occupied_resources.keys()):
+            runner_key = self.__non_key if runner_key_is_none else key
+            if len(self.__waiting_runners[runner_key]):
+                resource = self.__all_resources[key]
+                self.__occupied_resources[key] = resource
+
+                runner = self.__waiting_runners[runner_key].pop(0)
+                runner.context.resource = resource
+                runner.start()
+                for callback in self.__callbacks["on_runner_running"]:
+                    callback(runner)
+                self.__running_runners[key] = runner
+
+    def add_callback_on_runner_stopped(self, callback):
+        self.__callbacks["on_runner_stopped"].append(callback)
+
+    def add_callback_on_runner_running(self, callback):
+        self.__callbacks["on_runner_running"].append(callback)
+
+    def run(self):
+        self.__should_stop.clear()
+        while not self.__should_stop.is_set():
+            with self.__lock:
+                # check running runner's status, if is is not alive, release the resource
+                living_runners = {}
+                for key, runner in self.__running_runners.items():
+                    if not runner.is_stopped():
+                        living_runners[key] = runner
+                    else:
+                        del self.__occupied_resources[key]
+                        for callback in self.__callbacks["on_runner_stopped"]:
+                            callback(runner)
+                        if hasattr(runner, "terminate"):    # for process test runner, must call terminate.
+                            runner.terminate()
+                self.__running_runners = living_runners
+
+                logger.debug("waiting runners: %s, occupied resources: %s",
+                             self.__waiting_runners,
+                             self.__occupied_resources.keys())
+                # allocate resource to runner with key is not none
+                self.__allocate(runner_key_is_none=False)
+
+                # allocate resource to runner with key is none
+                self.__allocate(runner_key_is_none=True)
+            time.sleep(1.0)
+
+    def stop(self):
+        with self.__lock:
+            for runner in self.__running_runners.values():
+                runner.abort()
+        self.__should_stop.set()
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s %(thread)-5d [%(levelname)-8s] - %(message)s'
+    )

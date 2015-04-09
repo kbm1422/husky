@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<TestSuite name="cases.wired.rogue.test_si_drv_adapter">
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptBootStatusGetTestCase" method="test_SiiDrvAdaptBootStatusGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptChipGpioCtrl" method="test_SiiDrvAdaptChipGpioCtrl">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptChipIDGetTestCase" method="test_SiiDrvAdaptChipIdGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptChipRegReadTestCase" method="test_SiiDrvAdaptChipRegRead">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptChipRegReadTestCase" method="test_SiiDrvAdaptChipRegWrite">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptConfigureTestCase" method="test_SiiDrvAdaptConfigure">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptCreateTestCase" method="test_SiiDrvAdaptCreate">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptDeleteTestCase" method="test_SiiDrvAdatDelete">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptFirmwareUpdateTestCase" method="test_SkAppFWUpdate">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptStartTestCase" method="test_SiiDrvAdaptStart">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptStopTestCase" method="test_SiiDrvAdaptStop">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptTaskExecuteTestCase" method="test_SiiDrvAdaptTaskExecute">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter.SiiDrvAdaptVersionGetTestCase" method="test_SiiDrvAdaptVersionGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+</TestSuite>

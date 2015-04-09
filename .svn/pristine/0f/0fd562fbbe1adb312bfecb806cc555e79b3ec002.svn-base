@@ -1,0 +1,528 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+import pprint
+import pkgutil
+import inspect
+import importlib
+import unittest
+import types
+
+from xml.dom import minidom
+from xml.etree import ElementTree
+from collections import OrderedDict
+
+from simg import fs
+
+from .case import LinkedTestCase, isTestCaseSubClass
+from .suite import TestSuite, LinkedTestSuite, TestSuiteType
+from .mark import parametrize
+
+
+def get_testcase_class_by_name(name):
+    parts = name.split('.')
+    module_name = ".".join(parts[:-1])
+    module = importlib.import_module(module_name)
+    return getattr(module, parts[-1])
+
+
+def _validate_data_type(data):
+    if not isinstance(data, (dict, OrderedDict)):
+        raise TypeError("The data type should be dict or OrderedDict")
+
+
+def loadTestCaseFromDict(data):
+    """
+    TestCase:
+    {"class":"", "caseid": 123, "testid": 213, "name": "", "method": test_XX, }
+
+    LinkedTestCase:
+    {"class":"", "caseid": 123, "name": ""}
+    {"class":"", "caseid": 123, "name": "", "methods": ["test_1", "test_2"]}
+    """
+    _validate_data_type(data)
+    logger.info("loadTestCaseFromDict: %s", data)
+
+    caseid = data.pop("caseid", None)
+    testid = data.pop("testid", None)
+    name = data.pop("name", None)
+
+    clsname = data.pop("class")
+    cls = get_testcase_class_by_name(clsname)
+
+    if cls is LinkedTestCase or issubclass(cls, LinkedTestCase):
+        methodNames = data.pop("methods", None)
+        case = cls(methodNames, caseid, testid, name)
+    else:
+        methodName = data.pop("method")
+        case = cls(methodName, caseid, testid, name)
+
+    for name, value in data.items():
+        setattr(case, name, value)
+
+    case.eval_parametrize_attrs(parametrize.FetchType.EAGER)
+    return case
+
+
+def loadTestSuiteFromDict(data):
+    """
+    {
+    "type": 1,
+    "name": "",
+    "suiteid": 111,
+    "testid": 123,
+    "tests": [
+              { "class":"", "method": None },
+              {"type": 2, "name": "", "suiteid": 123, "tests": [] }
+             ]
+    }
+    """
+
+    _validate_data_type(data)
+
+    logger.info("loadTestSuiteFromDict: \n%s", pprint.pformat(data))
+
+    stype = data.pop("type")
+    tests = ()
+    suiteid = data.pop("suiteid", None)
+    testid = data.pop("testid", None)
+    name = data.pop("name", None)
+    if stype == TestSuiteType.TestSuite:
+        suite = TestSuite(tests, suiteid, testid, name)
+    elif stype == TestSuiteType.LinkedTestSuite:
+        suite = LinkedTestSuite(tests, suiteid, testid, name)
+    else:
+        raise ValueError
+
+    for subdata in data.pop("tests"):
+        if "class" in subdata:
+            case = loadTestCaseFromDict(subdata)
+            suite.addTest(case)
+        else:
+            subsuite = loadTestSuiteFromDict(subdata)
+            suite.addTest(subsuite)
+
+    for name, value in data.items():
+        setattr(suite, name, value)
+    return suite
+
+
+class TestModuleLoader(object):
+    def __init__(self, source):
+        if isinstance(source, str):
+            self.__module = importlib.import_module(source)
+        elif inspect.ismodule(source):
+            self.__module = source
+        else:
+            raise ValueError("Source type should be a module instance or module name")
+
+    def save_as_xml(self, filename):
+        """
+        <TestSuite name="cases.common">
+            <TestSuite name="cases.common.test_edid">
+                <TestCase class="cases.common.test_edid.EDIDTestCase" method="test_sink_tv_edid"/>
+            </TestSuite>
+            <TestSuite name="cases.common.test_formats">
+                <TestCase class="cases.common.test_formats.FormatsTestCase" method="test_3d_format">
+                    <Attribute name="device" value="%(device)s"/>
+                    <Attribute name="listen_keyword" value="%(listen_keyword)s"/>
+                    <Attribute name="format" value="%(format)s">
+                        <Choice></Choice>
+                        <Choice></Choice>
+                    </Attribute>
+                </TestCase>
+                <TestCase class="cases.common.test_formats.FormatsTestCase" method="test_audio_format">
+                    <Attribute name="device" value="%(device)s"/>
+                    <Attribute name="listen_keyword" value="%(listen_keyword)s"/>
+                    <Attribute name="format" value="%(format)s"/>
+                    <Attribute name="listen_timeout" value="3.0"/>
+                    <Attribute name="aud_vfmt" value="1080p60_RGB_8"/>
+                </TestCase>
+                <TestCase class="cases.common.test_formats.FormatsTestCase" method="test_video_format">
+                    <Attribute name="device" value="%(device)s"/>
+                    <Attribute name="listen_keyword" value="%(listen_keyword)s"/>
+                    <Attribute name="format" value="%(format)s"/>
+                    <Attribute name="listen_timeout" value="3.0"/>
+                    <Attribute name="IMAGE_2D" value="Acer1"/>
+                </TestCase>
+            </TestSuite>
+            <TestSuite name="cases.common.test_playvideo">
+                <TestCase class="cases.common.test_playvideo.PlayVideoTestCase" method="test_playvideo">
+                    <Attribute name="interval" value="60"/>
+                    <Attribute name="totaltime" value="600"/>
+                </TestCase>
+            </TestSuite>
+        </TestSuite>
+        """
+        logger.debug("load test suite from '%s', save it to %s", self.__module.__name__, filename)
+        dirname = os.path.dirname(filename)
+        if not os.path.exists(dirname):
+            fs.mkpath(dirname)
+
+        s = ElementTree.tostring(self.to_etree_element())
+
+        with open(filename, "w") as fdst:
+            fdst.write(minidom.parseString(s).toprettyxml())
+
+    def to_etree_element(self):
+        return self.__generate_testsuite_elements_from_module(self.__module)
+
+    @classmethod
+    def __generate_testsuite_element_suite_definition(cls, suite_definition):
+        suite_type = suite_definition["type"].__name__
+        suite_subs = suite_definition["subs"] if "subs" in suite_definition else ()
+        suite_element = ElementTree.Element(suite_type)
+        if "name" in suite_definition:
+            suite_element.set("name", suite_definition["name"])
+
+        for sub in suite_subs:
+            if isinstance(sub, types.MethodType):
+                ret_element, iter_elements = cls.__generate_testcase_element_from_method(sub)
+                suite_element.append(ret_element)
+                for iter_element in iter_elements:
+                    suite_element.append(iter_element)
+            elif isTestCaseSubClass(sub):
+                for ret_element, iter_elements in cls.__generate_testcase_elements_from_class(sub):
+                    suite_element.append(ret_element)
+                    for iter_element in iter_elements:
+                        suite_element.append(iter_element)
+            elif isinstance(sub, dict):
+                suite_element.append(cls.__generate_testsuite_element_suite_definition(sub))
+            else:
+                raise ValueError("Unsupported %s in __test_suite__" % sub)
+        return suite_element
+
+    @classmethod
+    def __generate_testsuite_elements_from_module(cls, module):
+        """
+        If the module has attribute "__test_suite__", parse it and then generate the <TestSuite> element.
+            __test_suite__ = {
+                "type": LinkedTestSuite,
+                "subs": (
+                    InputSelectTestCase.test_Sii9777InputSelect,
+                    {
+                        "type": TestSuite,
+                        "subs": (
+                            RxCdSenseQueryTestCase.test_Sii9777RxCdSenseQuery,
+                        )
+                    }
+                ),
+                "name": ""
+            }
+        Otherwise, parse all module's attributes which inherit from TestCase into a <TestSuite> element.
+        """
+        if hasattr(module, "__test_suite__"):
+            suite_element = cls.__generate_testsuite_element_suite_definition(getattr(module, "__test_suite__"))
+            if not suite_element.get("name"):
+                suite_element.set("name", module.__name__)
+        else:
+            suite_element = ElementTree.Element("TestSuite")
+            suite_element.set("name", module.__name__)
+            imploader = pkgutil.get_loader(module)
+            if imploader.is_package(module.__name__):
+                for module_loader, name, ispkg in pkgutil.iter_modules(path=module.__path__):
+                    sub_module = importlib.import_module(module.__name__ + "." + name)
+                    sub_module_element = cls.__generate_testsuite_elements_from_module(sub_module)
+                    if list(sub_module_element):
+                        suite_element.append(sub_module_element)
+                        #FIXME: does not cover dir(module)
+            else:
+                for name in dir(module):
+                    obj = getattr(module, name)
+
+                    if isTestCaseSubClass(obj):
+                        for ret_element, iter_elements in cls.__generate_testcase_elements_from_class(obj):
+                            suite_element.append(ret_element)
+                            for iter_element in iter_elements:
+                                suite_element.append(iter_element)
+        return suite_element
+
+    @classmethod
+    def __generate_testcase_element_from_method(cls, method):
+        case_element = ElementTree.Element("TestCase")
+        case_element.set("class", method.im_class.__module__ + "." + method.im_class.__name__)
+        case_element.set("method", method.__name__)
+        marks = OrderedDict()
+        marks.update(method.im_class.get_class_parametrize_marks())
+        marks.update(method.im_class.get_method_parametrize_marks(method.__name__))
+        return cls.__handle_parametrize_marks(case_element, marks)
+
+    @classmethod
+    def __generate_testcase_elements_from_class(cls, case_class):
+        class_name = case_class.__module__ + "." + case_class.__name__
+        if issubclass(case_class, LinkedTestCase):
+            method_names = getattr(case_class, "methodNames")
+            if method_names:
+                case_element = ElementTree.Element("LinkedTestCase")
+                case_element.set("class", class_name)
+
+                marks = OrderedDict()
+                marks.update(case_class.get_class_parametrize_marks())
+                for method_name in method_names:
+                    marks.update(case_class.get_method_parametrize_marks(method_name))
+                yield cls.__handle_parametrize_marks(case_element, marks)
+        else:
+            for method_name in unittest.TestLoader().getTestCaseNames(case_class):
+                yield cls.__generate_testcase_element_from_method(getattr(case_class, method_name))
+
+    @classmethod
+    def __handle_parametrize_marks(cls, case_element, parametrize_marks):
+        ret_element = case_element
+        iter_elements = []
+        for mark in parametrize_marks.values():
+            attr_element = ElementTree.Element("Attribute")
+            attr_element.set("name", mark.attrname)
+            value = "%(" + mark.attrname + ")s" if mark.default is None else str(mark.default)
+            attr_element.set("value", value)
+
+            for v in mark.choice:
+                choice_element = ElementTree.Element("Choice")
+                choice_element.text = v
+                attr_element.append(choice_element)
+            case_element.append(attr_element)
+
+            if mark.iteration is not None:
+                for_element = ElementTree.Element("For")
+                if mark.type in (int, float, long):
+                    for_element.set("list", str(mark.iteration))
+                    for_element.set("type", "expression")
+                elif mark.type is str:
+                    iter_element_name = mark.attrname.title().replace("_", "")
+                    for_element.set("list", ".//" + iter_element_name)
+                    for_element.set("type", "xpath")
+                    for v in mark.iteration:
+                        iter_element = ElementTree.Element(iter_element_name)
+                        iter_element.text = v
+                        iter_elements.append(iter_element)
+                else:
+                    raise ValueError("Unsupported mark type %s when iteration is not None" % mark.type)
+                for_element.set("param", mark.attrname)
+                for_element.append(ret_element)
+                ret_element = for_element
+        return ret_element, iter_elements
+
+    def to_dict(self, defines=None):
+        return TestSuiteXMLLoader(self.to_etree_element()).to_dict(defines)
+
+    def build(self, defines=None):
+        defines = defines or {}
+        return loadTestSuiteFromDict(self.to_dict(defines))
+
+
+def get_etree_root(xml):
+    if isinstance(xml, ElementTree.Element):
+        root = xml
+    elif isinstance(xml, ElementTree.ElementTree):
+        root = xml.getroot()
+    else:
+        root = ElementTree.parse(xml).getroot()
+    return root
+
+
+class TestSuiteXMLLoader(object):
+    """
+    <TestSuite name="Factory Test Suite">
+        <For list="range(1,11)" type="expression" param="pline" >
+            <LinkedTestSuite name="Factory Test Suite Product Line %(pline)s">
+                <TestCase class="cases.wireless.ba.factory.GoldenUnitTestCase" method="test_fm_set_golden">
+                    <Attribute name="pline" value="%(pline)s"/>
+                </TestCase>
+                <TestSuite>
+                    <For list="range(10)" type="expression">
+                        <LinkedTestCase class="cases.wireless.ba.factory.DUTTestCase">
+                            <Attribute name="pline" value="%(pline)s"/>
+                        </LinkedTestCase>
+                    </For>
+                </TestSuite>
+            </LinkedTestSuite>
+        </For>
+    </TestSuite>
+    """
+    def __init__(self, xml):
+        self.__root = get_etree_root(xml)
+
+    def build(self, defines=None):
+        defines = defines or {}
+        suite = loadTestSuiteFromDict(self.to_dict(defines))
+        return suite
+
+    def to_dict(self, defines=None):
+        return self.__generate_testsuite_dict(self.__root, defines)
+
+    def __generate_testsuite_dict(self, suiteelement, defines=None):
+        sdict = {}
+        if suiteelement.tag == "TestSuite":
+            sdict["type"] = 1
+        elif suiteelement.tag == "LinkedTestSuite":
+            sdict["type"] = 2
+        else:
+            raise ValueError("The type of test suite should be <TestSuite> or <LinkedTestSuite>")
+        pass
+
+        sdict["tests"] = []
+
+        def _handle_test_element(element, params=None):
+            if element.tag == "TestSuite" or element.tag == "LinkedTestSuite":
+                sdict["tests"].append(self.__generate_testsuite_dict(element, params))
+            elif element.tag == "TestCase" or element.tag == "LinkedTestCase":
+                sdict["tests"].append(self.__generate_testcase_dict(element, params))
+            else:
+                raise ValueError
+
+        def _handle_for_element(element, params=None):
+            etype = element.get("type")
+            s = element.get("list")
+            l = []
+            if etype == "expression":
+                l = eval(s)
+            elif etype == "xpath":
+                for e in self.__root.findall(s):
+                    l.append(e.text)
+            else:
+                raise ValueError("The attribute 'type' of <For> should be 'expression' or 'xpath'")
+
+            key = element.get("param", None)
+            params = params or {}
+            for val in l:
+                if key is not None:
+                    params[key] = val
+                for child in element:
+                    _handle_element(child, params)
+
+        def _handle_element(element, params=None):
+            if element.tag in ("TestSuite", "LinkedTestSuite", "TestCase", "LinkedTestCase"):
+                _handle_test_element(element, params)
+            elif element.tag == "For":
+                _handle_for_element(element, params)
+            else:
+                pass
+
+        for subelement in list(suiteelement):
+            _handle_element(subelement, defines)
+
+        for attr, value in suiteelement.items():
+            if defines is not None:
+                value = value % defines
+            sdict[attr] = value
+        return sdict
+
+    @staticmethod
+    def __generate_testcase_dict(element, defines=None):
+        if element.tag not in ("TestCase", "LinkedTestCase"):
+            raise ValueError("The type of test suite should be <TestCase> or <LinkedTestCase>")
+
+        cdict = dict()
+        for attribute in element.findall("Attribute"):
+            name = attribute.get("name")
+            value = attribute.get("value")
+            if defines is not None:
+                value = value % defines
+            cdict[name] = value
+
+        for name, value in element.items():
+            if defines is not None:
+                value = value % defines
+            cdict[name] = value
+
+        if "class" not in cdict:
+            raise KeyError
+        return cdict
+
+
+class TestDefinitionXMLLoader(object):
+    """
+    <TestDefinition>
+        <TestLoader load="suites/common/playvideo.xml" type="XML"/>
+        <TestLoader load="suites/common/formats_qd.xml" type="XML">
+            <Define name="listen_keyword" value="AV Mute OFF" />
+            <Define name="device" value="TestContextManager.current_context().resource.devices.receiver"/>
+        </TestLoader>
+        <TestLoader load="cases.wired.rogue.si_drv_adapter_tx" type="MODULE"/>
+        <TestSuite name="EDID Test">
+            <TestCase class="cases.common.test_edid.EDIDTestCase" method="test_sink_tv_edid"/>
+        </TestSuite>
+    </TestDefinition>
+    """
+    def __init__(self, xml):
+        self.__root = get_etree_root(xml)
+
+    def build_suites(self):
+        for suite_dict in self.to_suite_dicts():
+            yield loadTestSuiteFromDict(suite_dict)
+
+    def to_suite_dicts(self):
+        suite_dicts = []
+        for sub_element in list(self.__root):
+            if sub_element.tag in ("TestSuite", "LinkedTestSuite"):
+                suite_dicts.append(TestSuiteXMLLoader(sub_element).to_dict())
+            elif sub_element.tag == "TestLoader":
+                load = sub_element.get("load")
+                defines = {}
+                for define_element in list(sub_element):
+                    defines[define_element.get("name")] = define_element.get("value")
+
+                load_type = sub_element.get("type")
+                if load_type.upper() == "XML":
+                    suite_dicts.append(TestSuiteXMLLoader(load).to_dict(defines))
+                elif load_type.upper() == "MODULE":
+                    suite_dicts.append(TestModuleLoader(load).to_dict(defines))
+                else:
+                    raise ValueError("Unsupported load type: %s" % load_type)
+            else:
+                raise ValueError("Unsupported element tag %s" % sub_element.tag)
+
+        return suite_dicts
+
+
+class TestTargetLoader(object):
+    def __init__(self, target):
+        """
+        target can be:
+        1. python object path which specify a module, class or method
+        2. xml file with root element TestSuite, LinkedTestSuite or TestDefinition
+        3. ElementTree.ElementTree or ElementTree.Element with tag TestSuite, LinkedTestSuite or TestDefinition
+        """
+        self._target = target
+
+    def build_suites(self, defines=None):
+        for suite_dict in self.to_suite_dicts(defines):
+            yield loadTestSuiteFromDict(suite_dict)
+
+    def to_suite_dicts(self, defines=None):
+        defines = defines or {}
+        if os.path.isfile(self._target) or isinstance(self._target, (ElementTree.ElementTree, ElementTree.Element)):
+            root = get_etree_root(self._target)
+            if root.tag in ("TestSuite", "LinkedTestSuite"):
+                suite_dict = TestSuiteXMLLoader(self._target).to_dict(defines)
+                yield suite_dict
+            elif root.tag == "TestDefinition":
+                for suite_dict in TestDefinitionXMLLoader(self._target).to_suite_dicts():
+                    yield suite_dict
+        else:
+            parts = self._target.split(".")
+            parent = None
+            obj = __import__(parts[0])
+            for part in parts[1:]:
+                try:
+                    parent, obj = obj, importlib.import_module(obj.__name__ + "." + part)
+                except ImportError as err:
+                    logger.warning(str(err))
+                    parent, obj = obj, getattr(obj, part)
+                    if part != parts[-1]:
+                        continue
+                    else:
+                        break
+
+            if isinstance(obj, types.ModuleType):
+                yield TestModuleLoader(self._target).to_dict(defines)
+            elif isTestCaseSubClass(obj):
+                raise NotImplementedError   # TODO
+            elif isTestCaseSubClass(parent) and isinstance(obj, types.MethodType):
+                raise NotImplementedError   # TODO
+
+if __name__ == "__main__":
+    pass

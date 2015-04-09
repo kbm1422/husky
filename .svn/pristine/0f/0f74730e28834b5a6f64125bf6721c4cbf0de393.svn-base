@@ -1,0 +1,3 @@
+<TestSuite name="EDID Test">
+    <TestCase class="cases.common.test_edid.EDIDTestCase" method="test_sink_tv_edid"/>
+</TestSuite>

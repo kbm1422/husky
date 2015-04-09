@@ -1,0 +1,60 @@
+<?xml version="1.0" ?>
+<TestSuite name="cases.wired.rogue.test_si_drv_adapter_mhl">
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptCbusEventGetTestCase" method="test_SiiDrvAdaptCbusEventGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptCbusLocalDevcapSetTestCase" method="test_SiiDrvAdaptCbusLocalDevcapAudioLinkModeSet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptCbusLocalDevcapSetTestCase" method="test_SiiDrvAdaptCbusLocalDevcapFeatureFlagSet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptCbusLocalDevcapSetTestCase" method="test_SiiDrvAdaptCbusLocalDevcapRead">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptCbusLocalDevcapSetTestCase" method="test_SiiDrvAdaptCbusLocalDevcapVideoLinkModeSet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptCbusLocalDevcapSetTestCase" method="test_SiiDrvAdaptCbusLocalDevcapVideoTypeSet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptCbusLocalDevcapSetTestCase" method="test_SiiDrvAdaptCbusLocalDevcapWrite">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptCbusLocalDevcapSetTestCase" method="test_SiiDrvAdaptCbusTriggerToSendDcapChg">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptCbusModeGetTestCase" method="test_SiiDrvAdaptCbusModeGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptCbusRemoteDevcapReadTestCase" method="test_SiiDrvAdaptCbusRemoteDevcapRead">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptMhlVersionGetTestCase" method="test_SiiDrvAdaptMhlVersionGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptVbusRequestGetTestCase" method="test_SiiDrvAdaptCbusPowSet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptVbusRequestGetTestCase" method="test_SiiDrvAdaptVbusRequestGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdaptVbusRequestGetTestCase" method="test_SiiDrvAdaptVbusRequestGrant">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdapterMHL3BistTestCase" method="test_SiiDrvAdapterMHL3BistConfigGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdapterMHL3BistTestCase" method="test_SiiDrvAdapterMHL3BistConfigSet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdapterMHL3BistTestCase" method="test_SiiDrvAdapterMHL3BistEnable">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdapterMHL3BistTestCase" method="test_SiiDrvAdapterMHL3BistResultGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_mhl.SiiDrvAdapterMHL3BistTestCase" method="test_SiiDrvAdapterMHL3BistStatusGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+</TestSuite>

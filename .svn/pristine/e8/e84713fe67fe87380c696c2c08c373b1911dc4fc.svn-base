@@ -1,0 +1,38 @@
+<?xml version="1.0" ?>
+<TestSuite name="Boston Driver DualLink Test Suite">
+    <TestCase class="cases.wired.boston.test_drv_video_duallink.Sii9777DualLinkAutoEnableSetOffTestCase" method="test_Sii9777DualLinkAutoEnableSet_OFF">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_duallink.Sii9777DualLinkAutoEnableSetOnTestCase" method="test_Sii9777DualLinkAutoEnableSet_ON">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_duallink.Sii9777DualLinkLutSetTestCase" method="test_Sii9777DualLinkLutSet">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="expect_len_pVidRes" value="1"/>
+        <Attribute name="expect_pVidRes" value="2"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_duallink.Sii9777DualLinkManualSetOffTestCase" method="test_Sii9777DualLinkManualSet_OFF">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_duallink.Sii9777DualLinkManualSetOnTestCase" method="test_Sii9777DualLinkManualSet_ON">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_duallink.Sii9777DualLinkModeSetEvenOddTestCase" method="test_Sii9777DualLinkModeSetEvenOdd">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_duallink.Sii9777DualLinkModeSetLeftRightTestCase" method="test_Sii9777DualLinkModeSetLeftRight">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_duallink.Sii9777DualLinkModeSetPixelReorderTestCase" method="test_Sii9777DualLinkModeSetPixelReorder">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_duallink.Sii9777DualLinkQueryTestCase" method="test_Sii9777DualLinkQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_duallink.Sii9777DualLinkSwapEnableSetOffTestCase" method="test_Sii9777DualLinkSwapEnableSet_OFF">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase class="cases.wired.boston.test_drv_video_duallink.Sii9777DualLinkSwapEnableSetOnTestCase" method="test_Sii9777DualLinkSwapEnableSet_ON">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+</TestSuite>

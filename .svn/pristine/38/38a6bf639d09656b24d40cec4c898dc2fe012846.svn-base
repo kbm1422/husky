@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<TestSuite name="cases.wired.boston.test_drv_flash">
+    <TestCase class="cases.wired.boston.test_drv_general.FirmwareUpdateTestCase" method="test_firmware_update">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="upgrade_firmware_filename" value="%(upgrade_firmware_filename)s"/>
+        <Attribute name="upgrade_firmware_version" value="%(upgrade_firmware_version)s"/>
+        <Attribute name="rollback_firmware_filename" value="%(rollback_firmware_filename)s"/>
+    </TestCase>
+</TestSuite>

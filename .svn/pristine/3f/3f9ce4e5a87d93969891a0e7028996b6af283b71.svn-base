@@ -1,0 +1,31 @@
+<?xml version="1.0" ?>
+<TestSuite name="Boston Driver Test Pattern Generator(TPG) Test Suite">
+    <LinkedTestCase name="Sii9777TpgEnableSet, Sii9777TpgEnableGet" class="cases.wired.boston.test_drv_video_tpg.TPGEnableSetTestCase">
+        <Attribute name="device" value="%(device)s"/>
+    </LinkedTestCase>
+
+    <For list=".//Pattern" param="pattern" type="xpath">
+        <For list=".//VidRes" param="vid_res" type="xpath">
+            <LinkedTestCase name="%(pattern)s, %(vid_res)s" class="cases.wired.boston.test_drv_video_tpg.TPGPatternVidResSetTestCase">
+                <Attribute name="device" value="%(device)s"/>
+                <Attribute name="vid_res" value="%(vid_res)s"/>
+                <Attribute name="pattern" value="%(pattern)s"/>
+            </LinkedTestCase>
+        </For>
+    </For>
+    <VidRes>SII9777_VID_RES__2160P60</VidRes>
+    <VidRes>SII9777_VID_RES__720P60</VidRes>
+    <VidRes>SII9777_VID_RES__1080P60</VidRes>
+    <Pattern>SII9777_TPG_PATTERN__MAGENTA</Pattern>
+    <Pattern>SII9777_TPG_PATTERN__BLACK</Pattern>
+    <Pattern>SII9777_TPG_PATTERN__CHKBRD</Pattern>
+    <Pattern>SII9777_TPG_PATTERN__BLUE</Pattern>
+    <Pattern>SII9777_TPG_PATTERN__YELLOW</Pattern>
+    <Pattern>SII9777_TPG_PATTERN__CYAN</Pattern>
+    <Pattern>SII9777_TPG_PATTERN__GREEN</Pattern>
+    <Pattern>SII9777_TPG_PATTERN__GRYSCL</Pattern>
+    <Pattern>SII9777_TPG_PATTERN__RED</Pattern>
+    <Pattern>SII9777_TPG_PATTERN__CLRBAR</Pattern>
+    <Pattern>SII9777_TPG_PATTERN__WHITE</Pattern>
+    <Pattern>SII9777_TPG_PATTERN__SPECIAL</Pattern>
+</TestSuite>

@@ -1,0 +1,33 @@
+<?xml version="1.0" ?>
+<TestSuite name="Boston Driver TX HDMI Test Suite">
+    <TestCase name="Sii9777AvMuteSet, Sii9777AvMuteGet(ON)" class="cases.wired.boston.test_drv_tx_hdmi.AvMuteTestCase" method="test_Sii9777AvMuteSet_OFF">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="tx_port" value="%(tx_port)s"/>
+    </TestCase>
+    <TestCase name="Sii9777AvMuteSet, Sii9777AvMuteGet(OFF)" class="cases.wired.boston.test_drv_tx_hdmi.AvMuteTestCase" method="test_Sii9777AvMuteSet_ON">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="tx_port" value="%(tx_port)s"/>
+    </TestCase>
+    <TestCase name="Sii9777PrimTxPortSet, Sii9777PrimTxPortGet" class="cases.wired.boston.test_drv_tx_hdmi.PrimTxPortTestCase" method="test_Sii9777PrimTxPortSet">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="tx_port" value="%(tx_port)s"/>
+    </TestCase>
+    <TestCase name="Sii9777TmdsEnableSet, Sii9777TmdsEnableGet(OFF)" class="cases.wired.boston.test_drv_tx_hdmi.TmdsEnableSetTestCase" method="test_Sii9777TmdsEnableSet_OFF">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="tx_port" value="%(tx_port)s"/>
+    </TestCase>
+    <TestCase name="Sii9777TmdsEnableSet, Sii9777TmdsEnableGet(ON)" class="cases.wired.boston.test_drv_tx_hdmi.TmdsEnableSetTestCase" method="test_Sii9777TmdsEnableSet_ON">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="tx_port" value="%(tx_port)s"/>
+    </TestCase>
+    <LinkedTestCase name="Sii9777TmdsPinSwapSet, Sii9777TmdsPinSwapGet" class="cases.wired.boston.test_drv_tx_hdmi.TmdsPinSwapTestCase">
+        <Attribute name="device" value="%(device)s"/>
+    </LinkedTestCase>
+    <LinkedTestCase name="Sii9777TmdsSwingLevelSet, Sii9777TmdsSwingLevelGet" class="cases.wired.boston.test_drv_tx_hdmi.TmdsSwingLevelTestCase">
+        <Attribute name="device" value="%(device)s"/>
+    </LinkedTestCase>
+    <LinkedTestCase name="Sii9777HdcpEnableSet, Sii9777HdcpEnableGet" class="cases.wired.boston.test_drv_tx_hdmi.HdcpEnableTestCase">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="tx_port" value="%(tx_port)s"/>
+    </LinkedTestCase>
+</TestSuite>

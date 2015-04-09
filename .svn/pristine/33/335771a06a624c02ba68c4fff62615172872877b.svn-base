@@ -1,0 +1,74 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import subprocess
+from simg.devadapter import BaseDeviceAdapter, DeviceAdapterError, DeviceEndType
+from simg.devadapter.logsubject import SerialLogSubject
+
+
+class TitanDeviceAdapter(BaseDeviceAdapter):
+    DEVPATH = "/sys/class/mhl/sii-8620"
+
+    def __init__(self, comport, adb=True, **kwargs):
+        super(TitanDeviceAdapter, self).__init__(**kwargs)
+        self.__adb = adb
+        self.log_subject = SerialLogSubject(comport, 115200)
+
+    @property
+    def end_type(self):
+        return DeviceEndType.SOURCE
+
+    def open(self):
+        self.log_subject.open()
+
+    def close(self):
+        self.log_subject.close()
+
+    def send_rap(self, code):
+        cmd = "echo %x > %s/rap/out" % (code, self.DEVPATH)
+        self.run(cmd)
+
+    def send_rcp(self, code):
+        cmd = "echo %x > %s/rcp/out" % (code, self.DEVPATH)
+        self.run(cmd)
+
+    def send_ucp(self, code):
+        cmd = "echo %x > %s/udp/out" % (code, self.DEVPATH)
+        self.run(cmd)
+
+    def recv_rbp(self, code):
+        cmd = "echo %x > %s/rbp/in" % (code, self.DEVPATH)
+        return self.run(cmd)[1]
+
+    def run(self, cmd):
+        if self.__adb:
+            cmd = 'adb shell "%s"' % cmd
+        logger.debug("run: cmd=%s", cmd)
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
+        stdout = proc.communicate()[0]
+        logger.debug("run: retcode=%s, output=\n%s", proc.returncode, stdout)
+        if proc.returncode != 0:
+            raise DeviceAdapterError("command '%s' error" % cmd)
+        return proc.returncode, stdout
+
+    def get_connection_state(self):
+        cmd = "cat %s/connection_state" % self.DEVPATH
+        return self.run(cmd)[1]
+
+    def get_edid(self):
+        cmd = "cat %s/edid" % self.DEVPATH
+        return self.run(cmd)[1]
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s - %(thread)-5d [%(levelname)-8s] - %(message)s',
+    )
+
+    titan = TitanDeviceAdapter("COM25")
+    print titan.get_connection_state()
+    print titan.get_edid()

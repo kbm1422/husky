@@ -1,0 +1,398 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#Access QD980 via Telnet
+
+import telnetlib
+import time
+import re
+import os
+from ftplib import FTP
+
+class TimingInfo():
+    def __init__(self, ip, user, passwd):
+            self.inited = False
+            try:
+                    self.session = FTP(ip, user, passwd)
+                    print ('FTP: FTP session opened to ' + ip)
+                    self.inited = True
+            except:
+                    print("ERROR: Unable to open a ftp connection with "+ip+": "+str(sys.exc_info()[0]) +str(sys.exc_info()[1]))
+                    return
+            return
+        
+    def upload(self, filepath, storepath):
+            #self.session.login()
+            f2 = open(storepath, 'wb')
+            try:
+                    self.session.retrbinary("RETR " + filepath, f2.write)
+            except Exception:
+                    print ("FTP: Error in uploading the remote file.")
+                    return -1
+            else:
+                    print ("FTP: " + filepath + " successfully uploaded to " + storepath)
+            f2.close()
+            return 0
+        
+class VideoInfo():
+    def __init__(self, host, username="qd", password="qd"):
+        self.host=host
+        self.username=username
+        self.password=password
+        tn = telnetlib.Telnet(self.host, port=23, timeout=10)
+        tn.set_debuglevel(2)
+        
+        tn.read_until('xpscope-4a login: ')
+        tn.write(self.username + '\n')
+        
+        tn.read_until('Password: ')
+        tn.write(self.password + '\n')
+        data1 = tn.read_until("p-scope>")
+        #print data1
+        self.tn=tn
+
+    def sendcommand(self,command):
+        self.tn.write(command+'\n' )
+
+    def get_basic_video_info(self):
+        self.tn.write("vsinfo"+'\n' )
+        data = self.tn.read_until("Pixel Pack Phase")
+        print "======== Basic Video Timing Info ======== \n"
+        print data.split("\n")[31]        
+        print data.split("\n")[32]
+        print data.split("\n")[34]
+        print data.split("\n")[36]
+        print data.split("\n")[37]
+        print data.split("\n")[38]
+        
+    def get_2d_info(self,mem_size="small"):
+      
+        self.tn.write("vsinfo"+'\n' )
+        data = self.tn.read_until("Pixel Pack Phase")
+      
+        if mem_size == "small":        
+            self.tn.write("pcap size 4%"+'\n' )
+        elif  mem_size == "big":
+            self.tn.write("pcap size 10%"+'\n' )
+            
+        self.tn.read_until('capture buffer size')
+        time.sleep(0.5)
+
+        self.tn.write("pcap mode all"+'\n' )
+        self.tn.read_until('No filtering')
+        time.sleep(0.5)
+        self.tn.write("pcap start"+'\n' )
+        self.tn.read_until('END: Capture complete')
+        time.sleep(0.5)
+        self.tn.write("pcap decode"+'\n' )
+        self.tn.read_until('decode request complete')
+        time.sleep(0.5)
+        self.tn.write("pcap stat"+'\n' )
+        self.tn.read_until('complete')
+        time.sleep(0.5)
+        self.tn.write("pcap timing"+'\n' )
+        self.tn.read_until('type=112 complete')
+        time.sleep(0.5)          
+            
+        data1 = self.tn.read_until(">")
+        #self.tn.close()
+        
+        timing = TimingInfo(self.host,self.username,self.password)
+        log = "/home/qd/ptiming.log"
+        
+        storage = os.path.dirname(os.path.abspath(__file__)) + "\\ptiming.log"
+        timing.upload(log,storage)
+        del timing
+        time.sleep(3)
+        lines = []
+        f = open(storage, 'r')
+        lines = f.readlines()
+    
+        Color_depth =""
+        FORMAT_INFO = []
+        ##[4K x 2K 25Hz]  2 [24 bits per pixel] 56.25     1  3840  2160  2250  5280     1     1    88 52800  1056     8     0 297.000
+        ##     [1080p60] 16 [24 bits per pixel] 67.50     1  1920  1080  1125  2200     1     1    44 11000    88     4     0 148.500
+        #3D#   [unknown] 34 [24 bits per pixel] 67.43     1  1920  2205  2250  2200     1     1    44 11000    88     4     0 148.351 
+        V_FIELDS_INFO = []
+        ##         [4K x 2K 25Hz][001:17425659129.220: 40000.052] 25.00 56.25 02250 02160 297.000 088 010 090 0000 [00:000:00]
+        ## [1920x1080p 59.9/60Hz][001:682454917.990: 16666.688] 60.00 67.50 01125 01080 148.500 044 005 045 0000 [00:000:00]
+        i=0
+        for line in lines:
+            line = line.strip()
+            if re.search("VIDEO FORMAT:",line):
+                Color_depth = lines[i+2].strip().split("]")[1].split("[")[1]
+                FORMAT_INFO = lines[i+2].strip().split("]")[2].strip().split()
+                print FORMAT_INFO
+                ##['56.25',    '1',    '3840',    '2160',    '2250',    '5280',    '1',    '1',    '88',    '52800',    '1056',    '8',    '0',    '297.000']
+                ##  ======0             ====2     =====3     =====4     =====5                    ======8               =====10   ======11         ========13
+                ##  Hfreq              Hactive     Vactive    Vtotal     Htotal                     Hsync                Hfront    Vfront           TMDS Clock
+            if re.search("CAPTURE V FIELDS INFO:",line):
+                V_FIELDS_INFO = lines[i+2].split("]")[2].strip().split("[")[0].split()
+                print V_FIELDS_INFO
+                ##['25.00',   '56.25',   '02250',   '02160',   '297.000',   '088',   '010',   '090',   '0000']
+                ## ======0   =======1    ======2    ======3     ======4     =====5    ====6    ====7    ====8
+                ##  Vfreq      Hfreq      Vtotal    Vactive    TMDS Clock    Hsync    Vsync
+                break
+            i += 1
+            
+        print "\n======== Detail Video Timing Info ========"
+        #print data
+
+        print data.split("\n")[31]  #Video Active:      
+        print data.split("\n")[32]  #Video Total:
+        print data.split("\n")[34]  #Encryption:
+        print data.split("\n")[36]  #Video Format:
+        print data.split("\n")[37]  #Colorimetry:
+        print data.split("\n")[38]  #RGB YCC Ind:
+        RGB_YCC = str(data.split("\n")[38]).split("YCC Ind:")[1].strip()
+        if re.search("YCbCr",RGB_YCC,re.I):
+            RGB_YCC = RGB_YCC.split()[1]
+        print "Color Depth:        " + Color_depth
+        print "======"+ "Color Depth:" + Color_depth +" RGB YCC Ind:"+RGB_YCC 
+        print "Hactive:            " + FORMAT_INFO[2]
+        print "Htotal:             " + FORMAT_INFO[5]
+        print "Hfront:             " + FORMAT_INFO[10]        
+        print "Hfreq:              " + FORMAT_INFO[0]
+        print "Hsync:              " + FORMAT_INFO[8]
+        
+        print "Vactive:            " + str(int(V_FIELDS_INFO[3])) ## or FORMAT_INFO[3]
+        print "Vtotal:             " + str(int(V_FIELDS_INFO[2])) ## or FORMAT_INFO[4]
+        print "Vfront:             " + FORMAT_INFO[11]
+        print "Vfreq:              " + V_FIELDS_INFO[0]
+        print "Vsync:              " + str(int(V_FIELDS_INFO[6]))
+        
+        print "TMDS Clock Freq:    " + FORMAT_INFO[13]
+        Color_depth = Color_depth.split(" bit")[0]
+        
+        info1_0 =data.split("Format:")[1].split()[0]
+        info1_1 =data.split("Format:")[1].split()[1].split("Hz")[0]
+        info1_2 =data.split("Format:")[1].strip().split("VIC=")[1].split("]")[0]
+        
+        info1 = "Video_Format:" + info1_0+"_"+info1_1+"Hz_VIC="+info1_2 + " Color_Depth:" + Color_depth +" RGB_YCC:"+RGB_YCC 
+        info2 = " Hactive:" + FORMAT_INFO[2] + " Htotal:" + FORMAT_INFO[5]+" Hfront:" + FORMAT_INFO[10]+ " Hfreq:" + FORMAT_INFO[0]+" Hsync:"+ FORMAT_INFO[8]\
+             +" Vactive:" + str(int(V_FIELDS_INFO[3])) +" Vtotal:" + str(int(V_FIELDS_INFO[2]))+" Vfront:" + FORMAT_INFO[11]+" Vfreq:" + V_FIELDS_INFO[0]+" Vsync:" + str(int(V_FIELDS_INFO[6]))\
+             +" TMDS_Clock:" + FORMAT_INFO[13]
+        
+        print str(info1)+str(info2)
+        return info1+info2
+
+    def get_3d_info(self,mem_size="small"):
+        self.tn.write("pcap size 10%"+'\n' )
+        self.tn.read_until('capture buffer size')
+        time.sleep(0.5)
+
+        self.tn.write("pcap mode all"+'\n' )
+        self.tn.read_until('No filtering')
+        time.sleep(0.5)
+        self.tn.write("pcap start"+'\n' )
+        self.tn.read_until('END: Capture complete')
+        time.sleep(0.5)
+        self.tn.write("pcap decode"+'\n' )
+        self.tn.read_until('decode request complete')
+        time.sleep(0.5)
+        self.tn.write("pcap stat"+'\n' )
+        self.tn.read_until('complete')
+        time.sleep(0.5)
+        self.tn.write("pcap timing"+'\n' )
+        self.tn.read_until('type=112 complete')
+        time.sleep(0.5)          
+            
+        data1 = self.tn.read_until(">")
+        #self.tn.close()
+        
+        timing = TimingInfo(self.host,self.username,self.password)
+        log = "/home/qd/pdecode.log"
+        
+        storage = os.path.dirname(os.path.abspath(__file__)) + "\\pedcode.log"
+        timing.upload(log,storage)
+        
+        time.sleep(5)
+        lines = []
+        f = open(storage, 'r')
+        lines = f.readlines()
+
+        i=0
+        ThreeD_Structure =""
+        for line in lines:
+            line = line.strip()
+            if re.search("AVI InfoFrame",line):
+                video_format = lines[i+12].split("video format:")[1].strip()
+
+            if re.search("Vendor-Specific InfoFrame",line):
+                ThreeD_Structure = lines[i+4].split("3D Structure:")[1].strip()
+                if re.search("Side-by-Side",ThreeD_Structure,re.I):
+                    ThreeD_Ext_Data = lines[i+5].split("3D Ext Data:")[1].strip()
+                    ThreeD_Structure = ThreeD_Structure + ThreeD_Ext_Data
+                break
+            i += 1    
+
+        print video_format + " " + ThreeD_Structure
+        return video_format + " " + ThreeD_Structure
+
+    
+    def get_audio_info(self,mem_size="small"):
+        if mem_size == "small":        
+            self.tn.write("pcap size 6%"+'\n' )
+        elif  mem_size == "big":
+            self.tn.write("pcap size 10%"+'\n' )
+        self.tn.read_until('capture buffer size')
+        time.sleep(0.5)
+        self.tn.write("pcap mode all"+'\n' )
+        self.tn.read_until('No filtering')
+        time.sleep(0.5)
+        self.tn.write("pcap start"+'\n' )
+        self.tn.read_until('END: Capture complete')
+        time.sleep(0.5)
+        self.tn.write("pcap decode"+'\n' )
+        self.tn.read_until('decode request complete')
+        time.sleep(0.5)
+        self.tn.write("pcap stat"+'\n' )
+        self.tn.read_until('complete')
+        time.sleep(0.5)
+        self.tn.write("pcap timing"+'\n' )
+        self.tn.read_until('type=112 complete')
+        time.sleep(0.5)
+            
+        data1 = self.tn.read_until(">")
+        #self.tn.close()
+
+        timing = TimingInfo(self.host,self.username,self.password)
+        log = "/home/qd/pdecode.log"
+
+        storage = os.path.dirname(os.path.abspath(__file__)) + "\\pdecode.log"
+        timing.upload(log,storage)
+
+        
+        time.sleep(3)
+        lines = []
+        f = open(storage, 'r')
+        lines = f.readlines()
+        aud_InfoFrame = ""
+        spd_InfoFrame = ""
+        avi_InfoFrame = ""
+        mpeg_InfoFrame = ""
+
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if re.search("Audio InfoFrame", line):
+                check_sum = lines[i+1].split("check sum:")[1].strip()
+                channel_count = lines[i+3].split("channel count:")[1].strip()
+                HB = lines[i+11].split("HB:")[1].strip()
+                aud_InfoFrame = "AUD check sum:{0} AUD channel count:{1} AUD HB:{2}"\
+                                .format(check_sum, channel_count, HB)
+                #print aud_InfoFrame
+            elif re.search("Source Product Descriptor InfoFrame", line):
+                check_sum = lines[i+1].split("check sum:")[1].strip()
+                vendor_name = lines[i+2].split("vendor name:")[1].strip()
+                HB = lines[i+6].split("HB:")[1].strip()
+                spd_InfoFrame = "SPD check sum:{0} SPD vendor name:{1} SPD HB:{2}".format(check_sum, vendor_name, HB)
+                #print spd_InfoFrame
+            elif re.search("AVI InfoFrame", line):
+                check_sum = lines[i+1].split("check sum:")[1].strip()
+                RGB_YCC_indicator = lines[i+5].split("RGB/YCC indicator:")[1].strip()
+                HB = lines[i+22].split("HB:")[1].strip()
+                avi_InfoFrame = "AVI check sum:{0} AVI RGB/YCC indicator:{1} AVI HB:{2}"\
+                    .format(check_sum, RGB_YCC_indicator, HB)
+                #print avi_InfoFrame
+            elif re.search("MPEG Source InfoFrame", line):
+                packet_type = lines[i+1].split("packet type:")[1].strip()
+                HB = lines[i+4].split("HB:")[1].strip()
+                mpeg_InfoFrame = "MPEG packet type:{0} MPEG HB:{1}".format(packet_type, HB)
+                #print mpeg_InfoFrame
+            else:
+                pass
+        print "{0} {1} {2} {3}".format(aud_InfoFrame, spd_InfoFrame, avi_InfoFrame, mpeg_InfoFrame)    
+        #return "{0} {1} {2} {3}".format(aud_InfoFrame, spd_InfoFrame, avi_InfoFrame, mpeg_InfoFrame)
+        return "{0}".format(aud_InfoFrame)
+
+
+    
+    def get_x_info(self,mem_size="small"):
+        if mem_size == "small":        
+            self.tn.write("pcap size 6%"+'\n' )
+        elif  mem_size == "big":
+            self.tn.write("pcap size 10%"+'\n' )
+        self.tn.read_until('capture buffer size')
+        time.sleep(0.5)
+        self.tn.write("pcap mode all"+'\n' )
+        self.tn.read_until('No filtering')
+        time.sleep(0.5)
+        self.tn.write("pcap start"+'\n' )
+        self.tn.read_until('END: Capture complete')
+        time.sleep(0.5)
+        self.tn.write("pcap decode"+'\n' )
+        self.tn.read_until('decode request complete')
+        time.sleep(0.5)
+        self.tn.write("pcap stat"+'\n' )
+        self.tn.read_until('complete')
+        time.sleep(0.5)
+        self.tn.write("pcap timing"+'\n' )
+        self.tn.read_until('type=112 complete')
+        time.sleep(0.5)
+            
+        data1 = self.tn.read_until(">")
+        #self.tn.close()
+
+        timing = TimingInfo(self.host,self.username,self.password)
+        log = "/home/qd/pdecode.log"
+
+        storage = os.path.dirname(os.path.abspath(__file__)) + "\\pdecode.log"
+        timing.upload(log,storage)
+
+        
+        time.sleep(3)
+        lines = []
+        f = open(storage, 'r')
+        lines = f.readlines()
+        aud_InfoFrame = ""
+        spd_InfoFrame = ""
+        avi_InfoFrame = ""
+        mpeg_InfoFrame = ""
+        vs_InfoFrame = ""
+        for i, line in enumerate(lines):
+            line = line.strip()
+            if re.search("Audio InfoFrame", line):
+                check_sum = lines[i+1].split("check sum:")[1].strip()
+                channel_count = lines[i+3].split("channel count:")[1].strip()
+                HB = lines[i+11].split("HB:")[1].strip().split("|")[0]
+                aud_InfoFrame = "[AUD] check_sum:{0} channel_count:{1} HB:{2}"\
+                                .format(check_sum, channel_count, HB)
+                #print aud_InfoFrame
+            elif re.search("Source Product Descriptor InfoFrame", line):
+                check_sum = lines[i+1].split("check sum:")[1].strip()
+                vendor_name = lines[i+2].split("vendor name:")[1].strip()
+                HB = lines[i+6].split("HB:")[1].strip().split("|")[0]
+                spd_InfoFrame = "[SPD] check_sum:{0} vendor_name:{1} HB:{2}".format(check_sum, vendor_name, HB)
+                #print spd_InfoFrame
+            elif re.search("AVI InfoFrame", line):
+                check_sum = lines[i+1].split("check sum:")[1].strip()
+                colorimetry = lines[i+8].split("colorimetry:")[1].strip()
+                HB = lines[i+22].split("HB:")[1].strip().split("|")[0]
+                avi_InfoFrame = "[AVI] check_sum:{0} colorimetry:{1} HB:{2}"\
+                    .format(check_sum, colorimetry, HB)
+                #print avi_InfoFrame
+            elif re.search("MPEG Source InfoFrame", line):
+                packet_type = lines[i+1].split("packet type:")[1].strip()
+                HB = lines[i+4].split("HB:")[1].strip().split("|")[0]
+                mpeg_InfoFrame = "[MPEG] packet_type:{0} HB:{1}".format(packet_type, HB)
+                #print mpeg_InfoFrame
+            elif re.search("Vendor-Specific InfoFrame", line):
+                check_sum = lines[i+1].split("check sum:")[1].strip()
+                Registration_ID = lines[i+2].split("ID:")[1].strip()
+                HB = lines[i+5].split("HB:")[1].strip().split("|")[0]
+                vs_InfoFrame = "[VS] check_sum:{0} mhl_type:{1} HB:{2}".format(check_sum,Registration_ID, HB)    
+            else:
+                pass
+        print "{0} {1} {2} {3} {4}".format(aud_InfoFrame, spd_InfoFrame, avi_InfoFrame, mpeg_InfoFrame,vs_InfoFrame)    
+        return "{0} {1} {2} {3} {4}".format(aud_InfoFrame, spd_InfoFrame, avi_InfoFrame, mpeg_InfoFrame,vs_InfoFrame)
+
+
+        
+if __name__=="__main__":
+    host="172.16.131.189"
+    username="qd"
+    password="qd"
+    qd980 = VideoInfo(host,username,password)
+    qd980.get_x_info(mem_size="small")
+
+
+                                        

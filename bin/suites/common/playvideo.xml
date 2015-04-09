@@ -1,0 +1,6 @@
+<TestSuite name="PlayVideo Test Suite">
+    <TestCase class="cases.common.test_playvideo.PlayVideoTestCase" method="test_playvideo">
+        <Attribute name="totaltime" value="600" />
+        <Attribute name="interval" value="60"/>
+    </TestCase>
+</TestSuite>

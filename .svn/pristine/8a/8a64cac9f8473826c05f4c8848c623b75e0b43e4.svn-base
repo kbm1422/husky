@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestSuite name="Formats Infoframe Test Suite">
+  <For list="VideoFormat" type="xpath" param="format">
+    <TestCase name="test_infoframe_%(format)s" class="cases.common.test_formats_infoframe.FormatsTestCase" method="test_x_infoframe">
+      <Attribute name="format" value="%(format)s" />
+      <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+      <Attribute name="device" value="%(device)s" />
+      <Attribute name="listen_timeout" value="3.0" />
+    </TestCase>
+  </For>
+  <VideoFormat>EIA640x480p@60_RGB_8</VideoFormat>
+  <VideoFormat>EIA1440x480i@60_RGB_8</VideoFormat>
+  <VideoFormat>EIA2880x480i@60_444_8</VideoFormat>
+  <VideoFormat>EIA720x480p@60_444_8</VideoFormat>
+  <VideoFormat>EIA1440x480p@60_444_8</VideoFormat>
+  <VideoFormat>EIA2880x480p@60_444_8</VideoFormat>
+  <VideoFormat>EIA1440x576i@50_444_8</VideoFormat>
+  <VideoFormat>EIA2880x576i@50_444_8</VideoFormat>
+  <VideoFormat>EIA720x576p@50_444_8</VideoFormat>
+  <VideoFormat>EIA1440x576p@50_444_8</VideoFormat>
+  <VideoFormat>EIA2880x576p@50_444_8</VideoFormat>
+  <VideoFormat>EIA1280x720p@60_444_8</VideoFormat>
+  <VideoFormat>EIA1920x1080i@60_444_8</VideoFormat>
+  <VideoFormat>EIA1920x1080p@60_444_8</VideoFormat>
+  <VideoFormat>4K2K 3840x2160p30_444_8</VideoFormat>
+</TestSuite>

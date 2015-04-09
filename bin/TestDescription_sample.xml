@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestDescription>
+    <Summary>SoftPairing Test</Summary>
+
+    <!--
+    sendout:       optional, default true
+    attempt:       optional, default is 3
+    smtpserver:    optional, default is 172.25.0.3
+    sender:        optional, default is sqagroup@siliconimage.com
+    recevers:      required, using semicolon(;) as the the separator
+    -->
+    <MailReport sendout="true" attempt="3" smtpserver="172.25.0.3" sender="sqagroup@siliconimage.com" receivers="yale.yang@siliconimage.com" />
+
+    <TestRunner>
+        <!--
+        rsrcname: resource name which match with the name defined in resource.xml
+        -->
+        <TestContext rsrcname="SH-WIRED-TB1">
+        </TestContext>
+        <TestDefinition>
+            <!--load test suite from xml file, the xml root element tag name must be TestSuite or LinkedTestSuite-->
+            <TestLoader load="suites/common/playvideo.xml" type="XML"/>
+
+            <!--
+            Some XML file will specify the attribute value looks like %(device)s
+            It means the TestDescription xml which load the xml must sepcify the device's value
+            Example:
+            -->
+            <TestLoader load="suites/common/formats.xml" type="XML">
+                <Define name="listen_keyword" value="AV Mute OFF" />
+                <Define name="device" value="TestContextManager.current_context().resource.devices.receiver"/>
+            </TestLoader>
+
+            <!--load test suite from python module-->
+            <TestLoader load="cases.wired.rogue.si_drv_adapter_tx" type="MODULE">
+                <Define name="device" value="TestContextManager.current_context().resource.devices.receiver"/>
+            </TestLoader>
+
+            <!--define a test suite directly-->
+            <!-- a sample suite definition, which only include one case-->
+            <TestSuite name="Softpairing Test Suite 2">
+                <TestCase class="cases.wireless.gen3.softpairing.ReservedIDSettingTestCase" method="test_reserved_id_after_setting"/>
+            </TestSuite>
+
+            <!--
+            A complex suite definition, which only include <For> element and nested test suites
+            The <For> element type can be expression or xpath:
+                when type="expression": the value of @list attribute can be parsed by eval() function.
+                when type="xpath": the value of @list attribute is an xpath which specify a element in current xml.
+            -->
+            <TestSuite name="Factory Test Suite">
+                <For list="range(1,11)" type="expression" param="pline" >
+                    <LinkedTestSuite name="Factory Test Suite Product Line %(pline)s">
+                        <TestCase class="cases.wireless.ba.factory.GoldenUnitTestCase" method="test_fm_set_golden">
+                            <Attribute name="pline" value="%(pline)s"/>
+                        </TestCase>
+                        <TestSuite>
+                            <For list="range(10)" type="expression">
+                                <LinkedTestCase class="cases.wireless.ba.factory.DUTTestCase">
+                                    <Attribute name="pline" value="%(pline)s"/>
+                                </LinkedTestCase>
+                            </For>
+                        </TestSuite>
+                    </LinkedTestSuite>
+                </For>
+            </TestSuite>
+        </TestDefinition>
+    </TestRunner>
+</TestDescription>

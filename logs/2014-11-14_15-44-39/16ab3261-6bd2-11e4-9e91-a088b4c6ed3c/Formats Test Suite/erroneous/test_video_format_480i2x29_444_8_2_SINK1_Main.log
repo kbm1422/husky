@@ -1,0 +1,190 @@
+11/14/2014 15:45:13:318> (E) 11/14/2014 15:45:13:318> 1630 108431 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:13:323> (E) 11/14/2014 15:45:13:323> 1631 108431 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:13:332> (E) 11/14/2014 15:45:13:332> 1632 108431 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:13:343> (E) 11/14/2014 15:45:13:343> 1633 108431 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:13:349> (E) 11/14/2014 15:45:13:349> 1634 108431 (4997)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:13:358> (E) 11/14/2014 15:45:13:358> 1635 108431 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:13:817> (E) 11/14/2014 15:45:13:817> 1636 108931 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:13:824> (E) 11/14/2014 15:45:13:824> 1637 108931 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:13:831> (E) 11/14/2014 15:45:13:831> 1638 108931 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:13:843> (E) 11/14/2014 15:45:13:843> 1639 108931 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:13:849> (E) 11/14/2014 15:45:13:849> 1640 108931 (5021)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:13:857> (E) 11/14/2014 15:45:13:857> 1641 108931 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:14:317> (E) 11/14/2014 15:45:14:317> 1642 109431 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:14:323> (E) 11/14/2014 15:45:14:323> 1643 109431 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:14:332> (E) 11/14/2014 15:45:14:332> 1644 109431 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:14:342> (E) 11/14/2014 15:45:14:342> 1645 109431 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:14:350> (E) 11/14/2014 15:45:14:349> 1646 109431 (5045)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:14:358> (E) 11/14/2014 15:45:14:358> 1647 109431 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:14:818> (E) 11/14/2014 15:45:14:818> 1648 109931 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:14:823> (E) 11/14/2014 15:45:14:823> 1649 109931 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:14:832> (E) 11/14/2014 15:45:14:832> 1650 109931 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:14:843> (E) 11/14/2014 15:45:14:843> 1651 109931 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:14:848> (E) 11/14/2014 15:45:14:848> 1652 109931 (5069)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:14:859> (E) 11/14/2014 15:45:14:859> 1653 109931 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:15:319> (E) 11/14/2014 15:45:15:318> 1654 110431 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:15:323> (E) 11/14/2014 15:45:15:323> 1655 110431 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:15:332> (E) 11/14/2014 15:45:15:332> 1656 110431 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:15:342> (E) 11/14/2014 15:45:15:342> 1657 110431 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:15:350> (E) 11/14/2014 15:45:15:350> 1658 110431 (5094)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:15:358> (E) 11/14/2014 15:45:15:358> 1659 110431 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:15:817> (E) 11/14/2014 15:45:15:817> 1660 110931 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:15:824> (E) 11/14/2014 15:45:15:824> 1661 110931 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:15:831> (E) 11/14/2014 15:45:15:831> 1662 110931 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:15:842> (E) 11/14/2014 15:45:15:842> 1663 110931 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:15:849> (E) 11/14/2014 15:45:15:849> 1664 110931 (5118)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:15:858> (E) 11/14/2014 15:45:15:858> 1665 110931 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:16:316> (E) 11/14/2014 15:45:16:316> 1666 111431 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:16:324> (E) 11/14/2014 15:45:16:324> 1667 111431 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:16:332> (E) 11/14/2014 15:45:16:332> 1668 111431 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:16:343> (E) 11/14/2014 15:45:16:343> 1669 111431 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:16:348> (E) 11/14/2014 15:45:16:348> 1670 111431 (5142)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:16:359> (E) 11/14/2014 15:45:16:359> 1671 111431 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:16:818> (E) 11/14/2014 15:45:16:818> 1672 111931 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:16:823> (E) 11/14/2014 15:45:16:823> 1673 111931 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:16:832> (E) 11/14/2014 15:45:16:832> 1674 111931 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:16:842> (E) 11/14/2014 15:45:16:842> 1675 111931 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:16:849> (E) 11/14/2014 15:45:16:849> 1676 111931 (5166)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:16:858> (E) 11/14/2014 15:45:16:858> 1677 111931 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:17:317> (E) 11/14/2014 15:45:17:317> 1678 112431 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:17:324> (E) 11/14/2014 15:45:17:324> 1679 112431 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:17:331> (E) 11/14/2014 15:45:17:331> 1680 112431 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:17:343> (E) 11/14/2014 15:45:17:343> 1681 112431 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:17:349> (E) 11/14/2014 15:45:17:348> 1682 112431 (5190)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:17:358> (E) 11/14/2014 15:45:17:357> 1683 112431 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:17:817> (E) 11/14/2014 15:45:17:817> 1684 112931 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:17:823> (E) 11/14/2014 15:45:17:823> 1685 112931 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:17:832> (E) 11/14/2014 15:45:17:832> 1686 112931 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:17:842> (E) 11/14/2014 15:45:17:842> 1687 112931 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:17:849> (E) 11/14/2014 15:45:17:849> 1688 112931 (5214)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:17:858> (E) 11/14/2014 15:45:17:858> 1689 112931 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:18:318> (E) 11/14/2014 15:45:18:318> 1690 113431 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:18:323> (E) 11/14/2014 15:45:18:323> 1691 113431 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:18:332> (E) 11/14/2014 15:45:18:332> 1692 113431 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:18:343> (E) 11/14/2014 15:45:18:343> 1693 113431 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:18:348> (E) 11/14/2014 15:45:18:348> 1694 113431 (5239)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:18:357> (E) 11/14/2014 15:45:18:357> 1695 113431 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:18:817> (E) 11/14/2014 15:45:18:817> 1696 113931 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:18:822> (E) 11/14/2014 15:45:18:822> 1697 113931 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:18:831> (E) 11/14/2014 15:45:18:831> 1698 113931 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:18:842> (E) 11/14/2014 15:45:18:842> 1699 113931 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:18:849> (E) 11/14/2014 15:45:18:849> 1700 113931 (5263)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:18:857> (E) 11/14/2014 15:45:18:857> 1701 113931 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:19:318> (E) 11/14/2014 15:45:19:318> 1702 114431 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:19:323> (E) 11/14/2014 15:45:19:323> 1703 114431 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:19:332> (E) 11/14/2014 15:45:19:332> 1704 114431 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:19:342> (E) 11/14/2014 15:45:19:342> 1705 114431 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:19:349> (E) 11/14/2014 15:45:19:349> 1706 114431 (5287)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:19:358> (E) 11/14/2014 15:45:19:358> 1707 114431 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:19:817> (E) 11/14/2014 15:45:19:817> 1708 114931 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:19:823> (E) 11/14/2014 15:45:19:823> 1709 114931 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:19:832> (E) 11/14/2014 15:45:19:832> 1710 114931 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:19:842> (E) 11/14/2014 15:45:19:842> 1711 114931 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:19:849> (E) 11/14/2014 15:45:19:849> 1712 114931 (5311)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:19:858> (E) 11/14/2014 15:45:19:858> 1713 114931 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:19:865> (E) 11/14/2014 15:45:19:865> 1714 114941 (5312)UMAI: 1072:UMAC(sch): Beacon Tx Cnt : 5313 SF#: 5312
+11/14/2014 15:45:19:871> (E) 11/14/2014 15:45:19:871> 1715 114941 (5312)UMAI: 1806:LMAC: pkt rx cnt:152 lr_good:152 hr_good:0 bad:0
+11/14/2014 15:45:19:877> (E) 11/14/2014 15:45:19:877> 1716 114941 (5312)UMAI: 1807:LMAC: pkt tx cnt:337 lr_good:338 lr_bad:3 hr_good:0 hr_bad:0
+11/14/2014 15:45:20:316> (E) 11/14/2014 15:45:20:316> 1717 115431 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:20:323> (E) 11/14/2014 15:45:20:323> 1718 115431 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:20:332> (E) 11/14/2014 15:45:20:332> 1719 115431 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:20:342> (E) 11/14/2014 15:45:20:342> 1720 115431 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:20:348> (E) 11/14/2014 15:45:20:348> 1721 115431 (5335)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:20:357> (E) 11/14/2014 15:45:20:357> 1722 115431 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:20:818> (E) 11/14/2014 15:45:20:818> 1723 115931 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:20:824> (E) 11/14/2014 15:45:20:824> 1724 115931 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:20:833> (E) 11/14/2014 15:45:20:833> 1725 115931 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:20:843> (E) 11/14/2014 15:45:20:843> 1726 115931 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:20:850> (E) 11/14/2014 15:45:20:850> 1727 115931 (5359)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:20:859> (E) 11/14/2014 15:45:20:859> 1728 115931 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+
+11/14/2014 15:45:21:318> (E) 11/14/2014 15:45:21:318> 1729 116431 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:21:324> (E) 11/14/2014 15:45:21:324> 1730 116431 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:21:331> (E) 11/14/2014 15:45:21:331> 1731 116431 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:21:345> (E) 11/14/2014 15:45:21:345> 1732 116431 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:21:349> (E) 11/14/2014 15:45:21:349> 1733 116431 (5384)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:21:358> (E) 11/14/2014 15:45:21:358> 1734 116431 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+

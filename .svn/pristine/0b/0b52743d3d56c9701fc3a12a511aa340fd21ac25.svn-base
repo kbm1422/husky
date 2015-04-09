@@ -1,0 +1,40 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+from simg.test.framework import TestCase, TestContextManager, parametrize
+from simg.devadapter.wired.boston import BostonDeviceAdapter
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+
+AV_LINK_MAPPER = {SII9777_AV_LINK__NONE: "SII9777_AV_LINK__NONE",
+                  SII9777_AV_LINK__DVI: "SII9777_AV_LINK__DVI",
+                  SII9777_AV_LINK__HDMI1: "SII9777_AV_LINK__HDMI1",
+                  SII9777_AV_LINK__HDMI2: "SII9777_AV_LINK__HDMI2",
+                  SII9777_AV_LINK__MHL1: "SII9777_AV_LINK__MHL1",
+                  SII9777_AV_LINK__MHL2: "SII9777_AV_LINK__MHL2",
+                  SII9777_AV_LINK__MHL3: "SII9777_AV_LINK__MHL3"}
+
+BOOT_STATUS_MAPPER = {SII9777_BOOT_STAT__SUCCESS: "SII9777_BOOT_STAT__SUCCESS",
+                      SII9777_BOOT_STAT__IN_PROGRESS: "SII9777_BOOT_STAT__IN_PROGRESS",
+                      SII9777_BOOT_STAT__FAILURE: "SII9777_BOOT_STAT__FAILURE"}
+
+
+MSC_SUB_COMMAND_MAPPER = {SII9777_MSC_SUB_COMMAND__NONE: "SII9777_MSC_SUB_COMMAND__NONE",
+                          SII9777_MSC_SUB_COMMAND__RCP: "SII9777_MSC_SUB_COMMAND__RCP",
+                          SII9777_MSC_SUB_COMMAND__RCPK: "SII9777_MSC_SUB_COMMAND__RCPK",
+                          SII9777_MSC_SUB_COMMAND__RCPE: "SII9777_MSC_SUB_COMMAND__RCPE",
+                          SII9777_MSC_SUB_COMMAND__RAP: "SII9777_MSC_SUB_COMMAND__RAP",
+                          SII9777_MSC_SUB_COMMAND__RAPK: "SII9777_MSC_SUB_COMMAND__RAPK",
+                          SII9777_MSC_SUB_COMMAND__RBP: "SII9777_MSC_SUB_COMMAND__RBP",
+                          SII9777_MSC_SUB_COMMAND__RBPK: "SII9777_MSC_SUB_COMMAND__RBPK",
+                          SII9777_MSC_SUB_COMMAND__RBPE: "SII9777_MSC_SUB_COMMAND__RBPE",
+                          SII9777_MSC_SUB_COMMAND__UCP: "SII9777_MSC_SUB_COMMAND__UCP",
+                          SII9777_MSC_SUB_COMMAND__UCPK: "SII9777_MSC_SUB_COMMAND__UCPK",
+                          SII9777_MSC_SUB_COMMAND__UCPE: "SII9777_MSC_SUB_COMMAND__UCPE"}
+
+@parametrize("device", type=BostonDeviceAdapter, fetch=parametrize.FetchType.LAZY)
+class BaseBostonDriverTestCase(TestCase):
+    def _test_api_retcode(self, apiname, retcode):
+        self.assertEquals(retcode, SII_RETVAL__SUCCESS, "%s return code should be SII_RETVAL__SUCCESS" % apiname)

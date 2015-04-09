@@ -1,0 +1,33 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+from ctypes import byref
+from simg.test.framework import parametrize
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+from cases.wired.boston.base import BaseBostonDriverTestCase
+
+
+class EDIDTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777EdidDdcSet(self):
+        pass
+
+    def test_Sii9777EdidDdcGet(self):
+        pass
+
+    def test_Sii9777EdidReplicateEnableSet(self):
+        pass
+
+    def test_Sii9777EdidReplicateEnableGet(self):
+        pass
+
+    def test_Sii9777EdidSet(self):
+        pass
+
+    def test_Sii9777EdidGet(self):
+        pass
+
+    def test_Sii9777EdidQuery(self):
+        pass

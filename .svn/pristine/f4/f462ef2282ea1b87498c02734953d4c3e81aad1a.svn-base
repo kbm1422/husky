@@ -1,0 +1,64 @@
+===================================================
+	MHL System Compliance Test
+	RTL Version : 0x40
+	S/W Version : 2.04.0200 (console1.2)
+	CTS Version : 2.2
+	Driver Version : 0x05
+	Device Provider : Simplay Labs
+===================================================
+test_id : 01, 3.2.2.1 Legal Codes in Normal Mode
+	ctrl [0] = Video Format
+test_id : 02, 3.2.2.2 Basic Protocol in Normal Mode
+	ctrl [0] = Video Format
+test_id : 03, 3.2.2.3 Packet Types in Normal Mode
+	ctrl [0] = Video Format
+test_id : 04, 3.2.2.4 Legal Codes in PackedPixel Mode
+	ctrl [0] = Video Format PP
+test_id : 05, 3.2.2.5 Basic Protocol in PackedPixel Mode
+	ctrl [0] = Video Format PP
+test_id : 06, 3.2.2.6 Packet Types in PackedPixel Mode
+	ctrl [0] = Video Format PP
+test_id : 07, 3.2.3.1 Video Formats in Normal Mode
+	ctrl [0] = Video Format
+test_id : 08, 3.2.3.2 Pixel Encoding in Normal Mode
+	ctrl [0] = Video Format
+	ctrl [1] = Pixel Encoding
+test_id : 09, 3.2.3.3 AVI InfoFrame in Normal Mode
+	ctrl [0] = Video Format
+test_id : 10, 3.2.3.4 Video Quantization Ranges
+	ctrl [0] = Video Format
+	ctrl [1] = Quant Range
+test_id : 11, 3.2.3.5 Video Formats in PackedPixel Mode
+	ctrl [0] = Video Format PP
+test_id : 12, 3.2.3.6 Pixel Encoding in PackedPixel Mode
+	ctrl [0] = Video Format PP
+test_id : 13, 3.2.3.7 AVI InfoFrame in PackedPixel Mode
+	ctrl [0] = Video Format PP
+test_id : 14, 3.2.4.1 IEC 60958/IEC 61937
+	ctrl [0] = Video Format
+	ctrl [1] = Sample Size
+	ctrl [2] = Max Sample
+test_id : 15, 3.2.4.2 Audio Clock Regeneration
+	ctrl [0] = Video Format
+test_id : 16, 3.2.4.3 Audio InfoFrame
+	ctrl [0] = Video Format
+test_id : 17, 3.2.6.1 EDID Reading Test
+	ctrl [3] = [r] EDID 2 block
+	ctrl [4] = [r] EDID 4 block
+test_id : 18, 3.2.6.2 Device Capability Registers Test
+test_id : 19, 3.2.6.3 Device Status Registers Test in Normal Mode
+test_id : 20, 3.2.6.4 Device Status Registers Test in PackedPixel mode
+test_id : 21, 3.2.7.1 RCP Receiving Test
+	ctrl [0] = RCP selection
+test_id : 22, 3.2.7.2 RCP Transmitting Test
+	ctrl [0] = RCP selection
+test_id : 23, 3.2.8.1 RAP Sub-Commands Test
+test_id : 24, 3.2.9.1 3D Video Mode Support
+test_id : 25, 3.2.9.2 3D Video Format Timings in Normal Mode
+	ctrl [0] = 3D Video Format
+test_id : 26, 3.2.9.3 3D Video Mode Indicator
+test_id : 27, 3.2.9.4 3D Video Format Timings in PackedPixel mode
+	ctrl [0] = 3D Video Format PP
+test_id : 28, 3.2.10.1 UCP Reveiving Test
+test_id : 29, 3.2.10.2 UCP Transmitting Test
+test_id : 30, 3.1.1 TMDS Electrical Test

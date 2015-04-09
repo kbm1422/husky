@@ -1,0 +1,424 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+import sys
+import time
+import uuid
+import inspect
+import threading
+import multiprocessing
+import collections
+
+
+from .result import TestResult
+from .context import TestContext
+from .resource import TestResource
+
+
+class TestRunner(threading.Thread):
+    class Status(object):
+        INITIAL = 0
+        PENDING = 1
+        RUNNING = 2
+        SUSPEND = 3
+        ABORTED = 4
+        UNEXPECT = 5
+        FINISHED = 6
+
+    STATUS_MAPPER = {
+        Status.INITIAL: "INITIAL",
+        Status.PENDING: "PENDING",
+        Status.RUNNING: "RUNNING",
+        Status.SUSPEND: "SUSPEND",
+        Status.ABORTED: "ABORTED",
+        Status.UNEXPECT: "UNEXPECT",
+        Status.FINISHED: "FINISHED",
+    }
+
+    def __init__(self, uid=None, result=None, failfast=False, context=None):
+        self.uid = str(uid or uuid.uuid1())
+        super(TestRunner, self).__init__(name=self.uid)
+
+        self.result = result or TestResult()
+        self.result.failfast = failfast
+
+        if isinstance(context, dict):
+            self.context = TestContext()
+            for attr, value in context.items():
+                setattr(self.context, attr, value)
+        elif isinstance(context, TestContext):
+            self.context = context
+        else:
+            self.context = TestContext()
+
+        if self.context.logdir is None:
+            bindir = os.path.dirname(sys.executable) if hasattr(sys, '_MEIPASS') else sys.path[0]
+            self.context.logdir = os.path.join(os.path.dirname(bindir), "logs", time.strftime("%Y-%m-%d_%H-%M-%S"))
+
+        self._suites = []
+        self.status = TestRunner.Status.INITIAL
+
+    def add_suite(self, suite):
+        if isinstance(suite, (dict, collections.OrderedDict)):
+            suite = loadTestSuiteFromDict(suite)
+        self._suites.append(suite)
+
+    def run(self):
+        if self.context.resource is None:
+            self.context.resource = TestResource()
+
+        self.result.startTestRun()
+        self.status = TestRunner.Status.RUNNING
+        try:
+            self.context.resource.on_runner_start()
+            for suite in self._suites:
+                suite.run(self.result)
+        except KeyboardInterrupt:
+            logger.warn("KeyboardInterrupt")
+            self.abort()
+        except:
+            logger.exception("")
+            self.status = TestRunner.Status.UNEXPECT
+            raise
+        finally:
+            try:
+                self.context.resource.on_runner_stop()
+            except:
+                logger.exception("")
+                self.status = TestRunner.Status.UNEXPECT
+                raise
+            else:
+                if self.status not in (TestRunner.Status.ABORTED, TestRunner.Status.UNEXPECT):
+                    self.status = TestRunner.Status.FINISHED
+            finally:
+                self.result.stopTestRun()
+
+    def pause(self):
+        self.result.pause()
+        self.status = TestRunner.Status.SUSPEND
+
+    def resume(self):
+        self.result.resume()
+        self.status = TestRunner.Status.RUNNING
+
+    def abort(self):
+        self.result.stop()
+        self.status = TestRunner.Status.ABORTED
+
+    def is_stopped(self):
+        if self.status == TestRunner.Status.INITIAL:
+            return False
+        else:
+            return self.status in (TestRunner.Status.ABORTED, TestRunner.Status.UNEXPECT, TestRunner.Status.FINISHED)
+
+    def __repr__(self):
+        return "<%s(uid:%s, tid:%s, status:%s)>" % (self.__class__.__name__,
+                                                    self.uid,
+                                                    self.ident,
+                                                    TestRunner.STATUS_MAPPER[self.status])
+
+    def __str__(self):
+        return self.__repr__()
+
+
+def _get_dotted_attribute(obj, attrname):
+    names = attrname.split('.')
+    for name in names:
+        obj = getattr(obj, name, None)
+    return obj
+
+
+def _set_dotted_attribute(obj, attrname, value):
+    names = attrname.split('.')
+    for index in range(len(names)):
+        if index != len(names) - 1:
+            obj = getattr(obj, names[index])
+        else:
+            setattr(obj, names[index], value)
+
+
+class ProcessTestRunner(multiprocessing.Process):
+    def __init__(self, uid=None, result=None, failfast=False, context=None):
+        self.uid = str(uid or uuid.uuid1())
+        super(ProcessTestRunner, self).__init__(name=self.uid)
+        self._result = result or TestResult()
+        self._result.failfast = failfast
+
+        if isinstance(context, dict):
+            self._context = TestContext()
+            for name, value in context.items():
+                setattr(self._context, name, value)
+        elif isinstance(context, TestContext):
+            self._context = context
+        else:
+            self._context = TestContext()
+
+        if self._context.logdir is None:
+            bindir = os.path.dirname(sys.executable) if hasattr(sys, '_MEIPASS') else sys.path[0]
+            self._context.logdir = os.path.join(os.path.dirname(bindir), "logs", time.strftime("%Y-%m-%d_%H-%M-%S"))
+
+        self._suites = []
+        self._log_producers = []
+        self._src_conn, self._dst_conn = multiprocessing.Pipe()
+        self._pipe_lock = threading.Lock()
+        self._is_started = False
+        self._status = TestRunner.Status.INITIAL
+
+    def __getstate__(self):
+        excludes = ("_pipe_lock", )
+        return {k: v for k, v in self.__dict__.items() if k not in excludes}
+
+    def __pipe(self, name, *args, **kwargs):
+        with self._pipe_lock:
+            self._src_conn.send((name, args, kwargs))
+            resp = self._src_conn.recv()
+        return resp
+
+    @property
+    def result(self):
+        return self.__pipe("result") if self._is_started else self._result
+
+    @property
+    def context(self):
+        return self.__pipe("context") if self._is_started else self._context
+
+    @property
+    def status(self):
+        return self.__pipe("status") if self._is_started else self._status
+
+    @status.setter
+    def status(self, value):
+        if self._is_started:
+            self.__pipe("status", value)
+        else:
+            self._status = value
+
+    def pause(self):
+        self.__pipe("pause")
+
+    def resume(self):
+        self.__pipe("resume")
+
+    def abort(self):
+        self.__pipe("abort")
+
+    def is_stopped(self):
+        return self.__pipe("is_stopped") if self._is_started else False
+
+    def add_suite(self, suite):
+        """
+        Decorator @parametrize may be marked as a dynamic type, and the case constructed in main-process.
+        The dynamic will type eval with globals and locals, but the frame in globals and locals can't be pickled.
+        So, the case construct must delayed into sub-process.
+        """
+        if not isinstance(suite, dict):
+            raise TypeError("The type of argument 'suite' should be DictType.")
+        self._suites.append(suite)
+
+    def add_log_producer(self, log_producer):
+        log_producer.rname = self.name
+        log_producer.level = self.context.log_level
+        log_producer.layout = self.context.log_layout
+        self._log_producers.append(log_producer)
+
+    def run(self):
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)-15s - %(thread)-5d [%(levelname)-8s] - %(message)s'
+        )
+        try:
+            for log_producer in self._log_producers:
+                log_producer.start()
+
+            ident = multiprocessing.current_process().ident
+            runner = TestRunner(self.uid, self._result, self._result.failfast, self._context)
+
+            for suite in self._suites:
+                runner.add_suite(suite)
+
+            while True:
+                if self._dst_conn.poll(0.1):
+                    name, args, kwargs = self._dst_conn.recv()
+                    logger.debug("Recv PROCESS call: process=%s, name=%s, args=%s, kwargs=%s", ident, name, args, kwargs)
+                    retval = None
+                    try:
+                        if name == "TERMINATE":
+                            break
+                        attr = _get_dotted_attribute(runner, name)
+                        if inspect.ismethod(attr):
+                            retval = attr(*args, **kwargs)
+                        else:
+                            if args or kwargs:
+                                _set_dotted_attribute(runner, name, *args, **kwargs)
+                            else:
+                                retval = attr
+                    finally:
+                        self._dst_conn.send(retval)
+        finally:
+            self._dst_conn.close()
+            for log_producer in self._log_producers:
+                log_producer.stop()
+
+    def start(self):
+        super(ProcessTestRunner, self).start()
+        self.__pipe("start")
+        self._is_started = True
+
+    def terminate(self):
+        """
+        Attention: After calling this method, the sub-process will be terminated.
+                   We can't get any attributes of the runner thread in sub-process after it is terminated.
+        """
+        self.__pipe("TERMINATE")
+        self._src_conn.close()
+
+    def __repr__(self):
+        return "<%s(uid:%s, pid:%s, status:%s)>" % (self.__class__.__name__,
+                                                    self.uid,
+                                                    self.ident,
+                                                    TestRunner.STATUS_MAPPER[self.status])
+
+    def __str__(self):
+        return self.__repr__()
+
+
+from simg.net.xmlrpc import XMLRPCClient, Transport
+from .loader import loadTestSuiteFromDict
+from .loop import TestLoop
+
+
+class XMLRPCTestRunner(object):
+    def __init__(self, kwargs):
+        self.priority = kwargs.pop("priority", 1)
+        self.runner = ProcessTestRunner(**kwargs)
+
+    def register(self):
+        TestLoop().register_runner(self, self.priority)
+
+    def unregister(self):
+        TestLoop().unregister_runner(self)
+
+    def __getattr__(self, name):
+        if isinstance(self.runner, ProcessTestRunner) and name == "_dispatch":
+            raise AttributeError
+        return getattr(self.runner, name)
+
+    def __setattr__(self, name, value):
+        if name in ("runner",):
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self.runner, name, value)
+
+
+class XMLRPCTestRunnerProxy(XMLRPCClient):
+    class HandleKeyboardInterruptTransport(Transport):
+        def single_request(self, host, handler, request_body, verbose=1):
+            try:
+                return Transport.single_request(self, host, handler, request_body, verbose)
+            except KeyboardInterrupt:
+                self.close()
+                raise
+
+    def __init__(self, uri, transport=HandleKeyboardInterruptTransport(), **kwargs):
+        XMLRPCClient.__init__(self, uri, transport, **kwargs)
+
+
+from abc import ABCMeta, abstractmethod
+from simg.logging.filters import ThreadNameFilter
+
+
+class BaseTestRunnerLogProducer(object):
+    __metaclass__ = ABCMeta
+
+    def __init__(self, level=logging.DEBUG, layout="%(asctime)-15s - %(thread)-5d [%(levelname)-8s] - %(message)s"):
+        self.rname = None
+        self.level = level
+        self.layout = layout
+        self._log_hdlr = None
+
+    def start(self):
+        self._log_hdlr = self.create_handler()
+        self._log_hdlr.setLevel(self.level)
+        self._log_hdlr.setFormatter(logging.Formatter(self.layout))
+        self._log_hdlr.addFilter(ThreadNameFilter(self.rname))
+        logging.getLogger().addHandler(self._log_hdlr)
+
+    @abstractmethod
+    def create_handler(self):
+        pass
+
+    def stop(self):
+        if self._log_hdlr is not None:
+            logging.getLogger().removeHandler(self._log_hdlr)
+            self._log_hdlr.close()
+            self._log_hdlr = None
+
+
+class TestRunnerFileLogProducer(BaseTestRunnerLogProducer):
+    def __init__(self, filename):
+        super(TestRunnerFileLogProducer, self).__init__()
+        self.filename = filename
+
+    def create_handler(self):
+        return logging.FileHandler(self.filename, delay=True)
+
+
+class TestRunnerAMQPLogProducer(BaseTestRunnerLogProducer):
+    def __init__(self, url, exchange_name="simg.test.logging", exchange_type="direct"):
+        """amqpurl format: amqp://username:password@host:port/<virtual_host>[?query-string]"""
+        super(TestRunnerAMQPLogProducer, self).__init__()
+        self.url = url
+        self.exchange_name = exchange_name
+        self.exchange_type = exchange_type
+
+    def create_handler(self):
+        from simg.logging.handlers import AMQPHandler
+        return AMQPHandler(self.url, self.exchange_name, self.exchange_type, self.rname)
+
+
+class TestRunnerAMQPLogConsumer(threading.Thread):
+    def __init__(self, url, routing_key, exchange_name="simg.test.logging", exchange_type="direct"):
+        import socket
+
+        super(TestRunnerAMQPLogConsumer, self).__init__()
+        self.__url = url
+        self.__exchange_name = exchange_name
+        self.__exchange_type = exchange_type
+        self.__routing_key = routing_key
+        self.__queue_name = self.__routing_key + "@" + socket.gethostbyname(socket.gethostname())
+        self.__conn = None
+        self.__chan = None
+
+    def run(self):
+        import json
+        import pika.exceptions
+
+        def callback(ch, method, properties, body):
+            logrecord = json.loads(body)
+            print "%(asctime)-15s - %(thread)-5d [%(levelname)-8s] - %(message)s" % logrecord
+
+        self.__conn = pika.BlockingConnection(pika.URLParameters(self.__url))
+        self.__chan = self.__conn.channel()
+        self.__chan.exchange_declare(self.__exchange_name, self.__exchange_type, auto_delete=False, durable=True)
+        self.__chan.queue_declare(self.__queue_name)
+        self.__chan.queue_bind(self.__queue_name, self.__exchange_name, routing_key=self.__routing_key)
+        self.__chan.basic_consume(callback, queue=self.__queue_name, no_ack=True)
+        try:
+            logger.info("Start consuming %s logs from RabbitMQ.", self.__routing_key)
+            self.__chan.start_consuming()
+        except pika.exceptions.ChannelClosed:
+            self.__conn.close()
+
+    def stop(self):
+        logger.info("Stop consuming %s logs from RabbitMQ.", self.__routing_key)
+        self.__chan.stop_consuming()
+        self.__chan.queue_delete(self.__queue_name)
+        self.__conn.close()
+
+
+if __name__ == "__main__":
+    pass

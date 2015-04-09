@@ -1,0 +1,96 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+import time
+
+from simg.devadapter import DeviceEndType
+from base import BaseBlackBoxDeviceAdapter, MscMessageInterface, MscMessage, Mhl2Interface
+
+
+class Wolverine60DeviceAdapter(BaseBlackBoxDeviceAdapter, MscMessageInterface, Mhl2Interface):
+    def __init__(self, blackbox_number, blackbox_comport, **kwargs):
+        super(Wolverine60DeviceAdapter, self).__init__(blackbox_number, blackbox_comport, 19200, **kwargs)
+
+    @property
+    def end_type(self):
+        return DeviceEndType.SOURCE
+
+    def send_msc_message(self, type, code):
+        logger.debug("send msc message: type=0x%02X, code=0x%02X", type, code)
+        self.write_byte(0xC8, 0xB9, 0x68)
+        self.write_byte(0xC8, 0xBA, type)
+        self.write_byte(0xC8, 0xBB, code)
+        self.write_byte(0xC8, 0XB8, 0x02)
+
+    def recv_msc_message(self):
+        type = self.read_byte(0xC8, 0xBF)
+        code = self.read_byte(0xC8, 0xC0)
+        logger.debug("recv msc message: type=0x%02X, code=0x%02X", type, code)
+        return MscMessage(type, code)
+
+    def receive_rap(self):
+        time.sleep(2)
+        message = self.recv_msc_message()
+        return message.code
+
+    def receive_rcp(self):
+        time.sleep(2)
+        message = self.recv_msc_message()
+        return message.code
+
+    def receive_ucp(self):
+        time.sleep(2)
+        message = self.recv_msc_message()
+        return message.code
+
+    def disable_rcp_input_dev(self):
+        pass
+
+    def enable_rcp_input_dev(self):
+        pass
+
+    def disable_ucp_input_dev(self):
+        pass
+
+    def enable_ucp_input_dev(self):
+        pass
+
+    def get_local_devcap(self):
+        devcap = []
+        devcap.extend(self.read_block(0xC8, 0x00, 8))
+        devcap.extend(self.read_block(0xC8, 0x08, 8))
+        logger.debug("get %s local devcap: %s", self, devcap)
+        return devcap
+
+    def get_remote_devcap(self):
+        devcap = []
+        for i in range(16):
+            self.write_byte(0xC8, 0xB9, i)
+            self.write_byte(0xC8, 0xB8, 4)
+            time.sleep(0.1)
+            self.read_byte(0xC8, 0x92),
+            byte = self.read_byte(0xC8, 0xBC)
+            if byte < 0:
+                byte &= 0xFF
+            devcap.append(byte)
+        return devcap
+
+    def set_local_devcap(self):
+        raise NotImplementedError
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s [%(levelname)-8s] - %(message)s'
+    )
+
+    adpt = Wolverine60DeviceAdapter(0, "COM75")
+    adpt.open()
+    try:
+
+        type, code = adpt.receive_rap()
+        print type,code
+    finally:
+        adpt.close()

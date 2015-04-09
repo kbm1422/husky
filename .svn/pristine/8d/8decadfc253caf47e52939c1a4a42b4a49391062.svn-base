@@ -1,0 +1,39 @@
+<!-- MHL CBUS sink test cases -->
+<!-- Copyright (C) 2011 Simplay Labs-->
+<?xml version="1.0" encoding="utf-8"?>
+<SinkTest>
+	<TestCase ID="4.3.4.1" Name="4.3.4.1 CBE-Sink: Powered-Off ZCBUS_SINK_DISCOVER" Tag="" Location=""/>
+	<TestCase ID="4.3.5.1" Name="4.3.5.1 CBT-Sink: Time from Sink-side MHL Cable Detect until Sink CBUS Leaves HIGH-Z" Tag="" Location=""/>
+	<TestCase ID="4.3.6.1" Name="4.3.6.1 CBE-Sink: Post-Discovery Passive Pulldown ZCBUS_SINK_ON Resistance" Tag="" Location=""/>
+	<TestCase ID="4.3.6.2" Name="4.3.6.2 CBE-Sink: CBUS Capacitance" Tag="" Location=""/>
+	<TestCase ID="4.3.6.3" Name="4.3.6.3 CBE-Sink: Arbitrate/Sync/Data Drive LOW Voltage" Tag="" Location=""/>
+	<TestCase ID="4.3.6.4" Name="4.3.6.4 CBE-Sink: Arbitrate/Sync/Data Drive HIGH Voltage" Tag="" Location=""/>
+	<TestCase ID="4.3.7.1" Name="4.3.7.1 CBT-Sink: Arbitration/Sync/Data Active Drive HIGH Duration" Tag="" Location=""/>
+	<TestCase ID="4.3.7.2" Name="4.3.7.2 CBT-Sink: Arbitration/Sync/Data Edge Rate" Tag="" Location=""/>
+	<TestCase ID="4.3.8.1" Name="4.3.8.1 CBT-Sink: Arb, Sync, Data HIGH and LOW Timing" Tag="" Location=""/>
+	<TestCase ID="4.3.9.1" Name="4.3.9.1 CBT-Sink: Response to Link Level NACK" Tag="" Location=""/>
+	<TestCase ID="4.3.10.1" Name="4.3.10.1 CBT-Sink: ACK Output Timing in Nanoseconds" Tag="" Location=""/>
+	<TestCase ID="4.3.10.2" Name="4.3.10.2 CBT-Sink: ACK Drive HIGH Duration" Tag="" Location=""/>
+	<TestCase ID="4.3.11.1" Name="4.3.11.1 CBT-Sink: Sink uses Case 2 Regular Arbitration after NACK" Tag="" Location=""/>
+	<TestCase ID="4.3.11.2" Name="4.3.11.2 CBT-Sink: Sink Case 3 Long Re-arbitration when it Gives up the Bus" Tag="" Location=""/>
+	<TestCase ID="4.3.11.3" Name="4.3.11.3 CBT-Sink: Sink Uses Case 1 Back-to-Back Timing (No Re-arbitration)" Tag="" Location=""/>
+	<TestCase ID="4.3.13.1" Name="4.3.13.1 CBE-Sink: Discovery Sensitivity to Input Voltages" Tag="" Location=""/>
+	<TestCase ID="4.3.14.1" Name="4.3.14.1 CBT-Sink: Valid Wake Pulse Timing " Tag="" Location=""/>
+	<TestCase ID="4.3.14.2" Name="4.3.14.2 CBT-Sink: Valid Discovery Pulse Timing" Tag="" Location=""/>
+	<TestCase ID="4.3.14.3" Name="4.3.14.3 CBT-Sink: Sink in Standby Discovers on Wake plus Discovery Pulse Sequence" Tag="" Location=""/>
+	<TestCase ID="4.3.15.1" Name="4.3.15.1 CBT-Sink: First Discovery Pulse should be Ignored" Tag="" Location=""/>
+	<TestCase ID="4.3.15.2" Name="4.3.15.2 CBT-Sink: Last Discovery Pulse should be Ignored" Tag="" Location=""/>
+	<TestCase ID="4.3.16.1" Name="4.3.16.1 CBE-Sink: Sensitivity to VIH/VIL" Tag="" Location=""/>
+	<TestCase ID="4.3.17.1" Name="4.3.17.1 CBT-Sink: End of Discovery to Early Source-side Arbitration" Tag="" Location=""/>
+	<TestCase ID="4.3.17.2" Name="4.3.17.2 CBT-Sink: Sink Loses Arbitration Collision Correctly" Tag="" Location=""/>
+	<TestCase ID="4.3.18.1" Name="4.3.18.1 CBT-Sink: Bit Timing Sensitivity" Tag="" Location=""/>
+	<TestCase ID="4.3.19.1" Name="4.3.19.1 CBT-Sink: Response to Packet with Bad Parity" Tag="" Location=""/>
+	<TestCase ID="4.3.20.1" Name="4.3.20.1 CBT-Sink: Response to ACKs with Different Timings" Tag="" Location=""/>
+	<TestCase ID="4.3.21.1" Name="4.3.21.1 CBT-Sink: Sink receives Case 1 Back-to-Back Transfers" Tag="" Location=""/>
+	<TestCase ID="4.3.22.1" Name="4.3.22.1 CBT-Sink: Source Wins Arbitration, then No Packet, when Sink is Idle" Tag="" Location=""/>
+	<TestCase ID="4.3.23.1" Name="4.3.23.1 CBT-Sink: CBUS LOW for Less than Minimum TSINK_CBUS_DISCONN Reject Time" Tag="" Location=""/>
+	<TestCase ID="4.3.23.2" Name="4.3.23.2 CBT-Sink: CBUS LOW for Greater than Maximum TSINK_CBUS_DISCOVER Reject Time" Tag="" Location=""/>
+	<TestCase ID="4.3.24.1" Name="4.3.24.1 CBE-Sink: Sink DUT VBUS Output" Tag="" Location=""/>
+	<TestCase ID="4.3.25.1" Name="4.3.25.1 CBT-Sink: Sink DUT VBUS Turn On Transition Powered Sink" Tag="" Location=""/>
+	<TestCase ID="4.1.1.7" Name="4.1.1.7 RxSense Impedance" Tag="" Location=""/>
+</SinkTest>

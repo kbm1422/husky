@@ -1,0 +1,42 @@
+<TestSuite name="Power Cycle Test Suite">
+    <TestCase class="cases.wired.test_powercycle.PowerCycleTestCase" method="test_powercycle_device">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+    </TestCase>
+    <TestCase class="cases.wired.test_powercycle.PowerCycleTestCase" method="test_powercycle_tv">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+    </TestCase>
+    <TestCase class="cases.wired.test_powercycle.PowerCycleTestCase" method="test_powercycle_bdp">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+    </TestCase>
+    <TestCase class="cases.wired.test_powercycle.PowerCycleTestCase" method="test_powercycle_random">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+    </TestCase>
+    <TestCase class="cases.wired.test_powercycle.PowerOnTestCase" method="test_poweron_device_tv_first">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+    </TestCase>
+    <TestCase class="cases.wired.test_powercycle.PowerOnTestCase" method="test_poweron_device_bdp_first">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+    </TestCase>
+    <TestCase class="cases.wired.test_powercycle.PowerOnTestCase" method="test_poweron_bdp_device_first">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+    </TestCase>
+    <TestCase class="cases.wired.test_powercycle.PowerOnTestCase" method="test_poweron_bdp_tv_first">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+    </TestCase>
+    <TestCase class="cases.wired.test_powercycle.PowerOnTestCase" method="test_poweron_tv_device_first">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+    </TestCase>
+    <TestCase class="cases.wired.test_powercycle.PowerOnTestCase" method="test_poweron_tv_bdp_first">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="listen_keyword" value="%(listen_keyword)s" />
+    </TestCase>
+</TestSuite>

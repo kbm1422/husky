@@ -1,0 +1,122 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+import time
+import tempfile
+
+from simg.net import get_tcpport_not_in_use
+from simg.devadapter import BaseDeviceAdapter
+from simg.devadapter.logsubject import FileLogSubject
+from swam3 import SWAM3Connection, SWAM3Server, SWAM3CommandInterface
+
+
+class Gen3ChipAdapter(BaseDeviceAdapter, SWAM3CommandInterface):
+    def __init__(self, conn, index, **kwargs):
+        super(Gen3ChipAdapter, self).__init__(**kwargs)
+        self.__conn = conn
+        self.index = index
+        self.log_subject = None
+
+    def open(self):
+        root, ext = os.path.splitext(self.__conn.logname)
+        self.log_subject = FileLogSubject("%s_%s%s" % (root, "Main" if self.index == 1 else "Sub", ext))
+        self.log_subject.open()
+
+    def close(self):
+        if self.log_subject is not None:
+            self.log_subject.close()
+            self.log_subject = None
+
+    def sendcmd(self, cmd, timeout=5.0, interval=0.5, trim=True, wakeup=True):
+        cmd = "%s %s" % (cmd, self.index)
+        resp = self.__conn.sendcmd(cmd, timeout, interval, trim)
+
+        if "Warning:BB is in Sleep Mode" in resp and wakeup is True:
+            logger.debug("Module is in sleep mode, force to wake up it")
+            self.__conn.sendcmd("pwr_set_mode 3 %s" % self.index)
+            logger.debug("retry cmd: %s", cmd)
+            resp = self.__conn.sendcmd(cmd, timeout, interval, trim)
+        return resp
+
+    def reset(self):
+        self.sendcmd("reset")
+
+    def upgradeFirmware(self, filename):
+        raise NotImplementedError
+
+
+class JaxDeviceAdapter(BaseDeviceAdapter):
+    def __init__(self, moduleid, tcpport=None, logname=None, name="", **kwargs):
+        super(JaxDeviceAdapter, self).__init__(**kwargs)
+        self.moduleid = moduleid
+        self.tcpport = int(tcpport or get_tcpport_not_in_use())
+        self.logname = logname
+        self.name = name
+        self.conn = SWAM3Connection(("127.0.0.1", self.tcpport), self.name)
+        self.gen3_1 = Gen3ChipAdapter(self.conn, 1)
+        self.gen3_2 = Gen3ChipAdapter(self.conn, 2)
+
+    def set_ss_server_logname(self, newname):
+        self.logname = newname
+        self.gen3_1.close()
+        self.gen3_2.close()
+        self.conn.set_ss_server_logname(newname)
+        self.gen3_1.open()
+        self.gen3_2.open()
+        time.sleep(3)
+
+    def sendcmd(self, *args, **kwargs):
+        return self.conn.sendcmd(*args, **kwargs)
+
+    def reset(self):
+        """
+        “reset 0” – To reset Boston
+        “reset 1” – To reset Main BB
+        “reset 2” – To reset Sub BB
+        “resetallbb 1” or “resetallbb 2” – To reset both Main BB and Sub BB
+        reset Gen3 main/bb first then reset Boston
+        """
+        self.sendcmd("reset 1")
+        self.sendcmd("reset 2")
+        self.sendcmd("reset 0")
+
+    def nvramreset(self):
+        self.gen3_1.nvramreset()
+        self.gen3_2.nvramreset()
+
+    def open(self):
+        self.logname = self.logname or tempfile.mkstemp()[1] + ".log"
+        self.conn.logname = self.logname
+        srv = SWAM3Server(self.moduleid, self.tcpport, None, self.logname, "server_jax")
+        srv.start()
+
+        self.conn.open()
+        self.gen3_1.open()
+        self.gen3_2.open()
+        time.sleep(3)
+
+    def close(self):
+        if self.conn:
+            logger.info("exit ss_server")
+            self.conn.sendcmd("ss_server exit", timeout=1.0)
+            self.conn.close()
+            self.gen3_1.close()
+            self.gen3_2.close()
+            self.conn = None
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s [%(levelname)-8s] - %(message)s'
+    )
+
+    tx = JaxDeviceAdapter("jax_tx", 40001, r"D:\tx.log", "jax_tx")
+    tx.open()
+    print tx.gen3_1.getFwBuild()
+    print tx.gen3_2.getFwBuild()
+    tx.close()
+    #rx = JaxDeviceAdapter("jax_rx")

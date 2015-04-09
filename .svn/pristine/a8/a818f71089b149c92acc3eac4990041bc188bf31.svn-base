@@ -1,0 +1,235 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+import subprocess
+from simg.devadapter import BaseDeviceAdapter, DeviceAdapterError, DeviceEndType
+from simg.devadapter.logsubject import SerialLogSubject
+from simg.devadapter.wired.base import MscMessageInterface, Mhl3Interface
+
+
+class TitanDeviceAdapter(BaseDeviceAdapter, MscMessageInterface, Mhl3Interface):
+    DEVPATH = "/sys/class/mhl/sii-8620"
+
+    def __init__(self, comport=None, adb=True, **kwargs):
+        super(TitanDeviceAdapter, self).__init__(**kwargs)
+        self.__comport = comport
+        self.__adb = adb
+        if self.__comport is not None:
+            self.log_subject = SerialLogSubject(comport, 115200)
+
+    @property
+    def end_type(self):
+        return DeviceEndType.SOURCE
+
+    def open(self):
+        os.system("adb start-server")
+        if self.__comport is not None:
+            self.log_subject.open()
+
+    def close(self):
+        if self.__comport is not None:
+            self.log_subject.close()
+        #os.system("adb kill-server")
+
+    def send_msc_message(self, type, code):
+        raise NotImplementedError
+
+    def recv_msc_message(self):
+        raise NotImplementedError
+
+    def send_rap(self, code):
+        """
+            Send a RAP command message to the peer device.
+            Valid values are:
+            0x00 – POLL
+            0x10 – CONTENT_ON
+            0x11 – CONTENT_OFF
+            0x20 – CBUS_MODE_DOWN
+            0x21 – CBUS_MODE_UP
+            Reading from this attribute yields the last value written to it.
+        """
+        cmd = "echo %d > %s/rap/out" % (code, self.DEVPATH)
+        self.run(cmd)
+
+    def receive_rap(self):
+        """
+            Returns the most recent RAP subcommand received from the peer device.
+            Possible values are:
+            0x00 – POLL
+            0x10 – CONTENT_ON
+            0x11 – CONTENT_OFF
+            0x20 – CBUS_MODE_DOWN
+            0x21 – CBUS_MODE_UP
+        """
+        cmd = "cat %s/rap/in" % self.DEVPATH
+        print "rap is "
+        rap = self.run(cmd)[1]
+        return int(rap, 16)
+
+    def send_rap_response(self):
+        """Returns the peer response to the last RAP message sent. Possible values are:
+           0x00 – No Error
+           0x01 – Unrecognized Action Code
+           0x02 – Unsupported Action Code
+           0x03 – Responder Busy."""
+        cmd = "cat %s/rap/out_status" % self.DEVPATH
+        return self.run(cmd)[1]
+
+    def send_rcp(self, code):
+        cmd = "echo %d > %s/rcp/out" % (code, self.DEVPATH)
+        return self.run(cmd)
+
+    def disable_rcp_input_dev(self):
+        """0 – Disable Linux event generation(rbp / in data valid), we can get receive rcp key code"""
+        cmd = "echo 0 >  %s/rcp/input_dev" %self.DEVPATH
+        return self.run(cmd)
+
+    def enable_rcp_input_dev(self):
+        """1 – Enable conversion of RCP messages into Linux input key events
+           Reading from this attribute yields the last value written to it."""
+        cmd = "echo 1 >  %s/rcp/input_dev"%self.DEVPATH
+        return self.run(cmd)
+
+    def receive_rcp(self):
+        cmd = "cat %s/rcp/in" % self.DEVPATH
+        rcp_code = self.run(cmd)[1].strip()
+        return int(rcp_code, 16)
+
+    def send_rcp_response(self):
+        """
+           Returns the peer response to the last RCP message sent.
+           Possible values are:
+           0x00 – No Error
+           0x02 – Responder Busy
+           0xXX – Ineffective Key Code
+        """
+        cmd = "cat %s/rcp/out_status" % self.DEVPATH
+        return self.run(cmd)
+
+    def send_ucp(self, code):
+        cmd = "echo %d > %s/ucp/out" % (code, self.DEVPATH)
+        return self.run(cmd)
+
+    def disable_ucp_input_dev(self):
+        cmd = "echo 0 >  %s/ucp/input_dev" % self.DEVPATH
+        return self.run(cmd)
+
+    def enable_ucp_input_dev(self):
+        cmd = "echo 1 >  %s/ucp/input_dev" % self.DEVPATH
+        return self.run(cmd)
+
+    def receive_ucp(self):
+        cmd = "cat %s/ucp/in" % self.DEVPATH
+        return int(self.run(cmd)[1], 16)
+
+    def send_ucp_response(self):
+        cmd = "cat %s/ucp/out_status" % self.DEVPATH
+        return self.run(cmd)[1]
+
+    def disable_rbp_input_dev(self):
+        cmd = "echo 0 >  %s/rbp/input_dev" % self.DEVPATH
+        return self.run(cmd)
+
+    def enable_rbp_input_dev(self):
+        cmd = "echo 1 >  %s/rbp/input_dev" % self.DEVPATH
+        return self.run(cmd)
+
+    def send_rbp(self, code):
+        cmd = "echo %d > %s/rbp/out" % (code, self.DEVPATH)
+        return self.run(cmd)
+
+    def receive_rbp(self):
+        cmd = "cat %s/rbp/in" % self.DEVPATH
+        return int(self.run(cmd)[1], 16)
+
+    def send_rbp_response(self):
+        """Returns the peer response to the last UCP message sent.
+            Possible values are:
+            0x00 – No Error.
+            0x01 – Ineffective Key Code."""
+        cmd = "cat %s/ucp/out_status" % self.DEVPATH
+        return self.run(cmd)[1]
+
+    def read_block(self, page, offset, length):
+        self.run("echo %d > %s/reg_access/page" % (page, self.DEVPATH))
+        self.run("echo %d > %s/reg_access/offset" % (offset, self.DEVPATH))
+        self.run("echo %d > %s/reg_access/length" % (length, self.DEVPATH))
+        return self.run("cat %s/reg_access/data" % self.DEVPATH)[1]
+
+    def run(self, cmd):
+        if self.__adb:
+            cmd = 'adb shell "%s"' % cmd
+        logger.debug("run: cmd=%s", cmd)
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
+        stdout = proc.communicate()[0]
+        logger.debug("run: retcode=%s, output=\n%s", proc.returncode, stdout)
+        if proc.returncode != 0:
+            raise DeviceAdapterError("command '%s' error" % cmd)
+        return proc.returncode, stdout
+
+    def get_connection_state(self):
+        cmd = "cat %s/connection_state" % self.DEVPATH
+        return self.run(cmd)[1]
+
+    def get_edid(self):
+        cmd = "cat %s/edid" % self.DEVPATH
+        return self.run(cmd)[1]
+
+    def get_local_devcap(self):
+        devcap = []
+        for index in range(16):
+            set_offset_cmd = "echo %s > %s/devcap/local_offset" % (index, self.DEVPATH)
+            self.run(set_offset_cmd)
+
+            get_devcap_cmd = "cat %s/devcap/local" % self.DEVPATH
+            value = self.run(get_devcap_cmd)[1]
+            devcap.append(int(value, 16))
+        logger.debug("%s's local devcap: %s", self, devcap)
+        return devcap
+
+    def get_remote_devcap(self):
+        devcap = []
+        for index in range(16):
+            set_offset_cmd = "echo %s > %s/devcap/remote_offset" % (index, self.DEVPATH)
+            self.run(set_offset_cmd)
+
+            get_devcap_cmd = "cat %s/devcap/remote" % self.DEVPATH
+            value = self.run(get_devcap_cmd)[1]
+            devcap.append(int(value, 16))
+        logger.debug("%s's remote devcap: %s", self, devcap)
+        return devcap
+
+    def get_local_x_devcap(self):
+        # page 4: 0x80-0x83
+        # return: 0xba'0x80: 0x03 0x07 0x09 0x01
+        data = self.read_block(0xBA, 0x80, 4)
+        key, value = data.split(":")
+        if key != "0xba'0x80":
+            raise DeviceAdapterError("%s != 0xba'0x80" % key)
+        devcap_str_list = value.strip().split(" ")
+        logger.debug("%s's remote devcap: %s", self, devcap_str_list)
+        return [int(s, 16) for s in devcap_str_list]
+
+    def get_remote_x_devcap(self):
+        raise NotImplementedError
+
+    def ___str__(self):
+        return "<TitanDeviceAdapter(comport:%s)>" % self.__comport
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s - %(thread)-5d [%(levelname)-8s] - %(message)s',
+    )
+
+    titan = TitanDeviceAdapter()
+    titan.open()
+    try:
+        print titan.get_local_devcap()
+        print titan.get_local_x_devcap()
+    finally:
+        titan.close()

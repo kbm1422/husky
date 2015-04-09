@@ -1,0 +1,1130 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import unittest
+import random
+from ctypes import byref
+from simg.test.framework import parametrize
+from cases.wired.boston.base import BaseBostonDriverTestCase
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+
+
+#2.10.1
+#TODO: a. Sii9777OutputPixelFormatSet and Sii9777OutputPixelFormatGet return value is right,
+#TODO:    but set value not equal to get.
+#TODO: b. Sii9777PixFrm_t are combination of different enum value, should we test all enum value?
+class Sii9777PixelFormatSetTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777PixelFormatSet() and Sii9777OutputPixelFormatGet()
+        by setting pPixFmt.clrFmt, pPixFmt.crSmpl, pPixFmt.bitDepth in TestDescription.xml.
+    API Description:
+        Configures video pixel format that is desired to be used on the currently selected video output (Tx0/Tx1/Tx2).
+        This configuration is only used when pixel format conversion between input and output is enabled.
+    """
+
+    def setUp(self):
+        self.__is_enable = bool_t()
+        with self.device.lock:
+            Sii9777PixelFormatConversionGet(self.device.drv_instance, byref(self.__is_enable))
+
+        self.__pPixFmt = Sii9777PixFrm_t()
+        with self.device.lock:
+            Sii9777OutputPixelFormatGet(self.device.drv_instance, byref(self.__pPixFmt))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777OutputPixelFormatSet(self.device.drv_instance, byref(self.__pPixFmt))
+
+        with self.device.lock:
+            Sii9777PixelFormatConversionSet(self.device.drv_instance, byref(self.__is_enable))
+
+    @parametrize("expect_clrFmt", type=int, default=SII9777_CLR_FMT__NO_DATA)
+    @parametrize("expect_crSmpl", type=int, default=SII9777_CR_SMPL__NO_DATA)
+    @parametrize("expect_bitDepth", type=int, default=SII9777_BIT_DEPTH__NO_DATA)
+    def test_Sii9777OutputPixelFormatSet(self):
+        #enable pixel format conversion enable
+        pEnable = bool_t(True)
+        with self.device.lock:
+            retcode = Sii9777PixelFormatConversionSet(self.device.drv_instance, byref(pEnable))
+        self.assertEquals(retcode, SII_RETVAL__SUCCESS, msg="set pixel format conversion enable successfully")
+
+        expect_pPixFmt = Sii9777PixFrm_t()
+        expect_pPixFmt.clrFmt = Sii9777ClrFmt_t(self.expect_clrFmt)
+        expect_pPixFmt.crSmpl = Sii9777CrSmpl_t(self.expect_crSmpl)
+        expect_pPixFmt.bitDepth = Sii9777BitDepth_t(self.expect_bitDepth)
+        with self.device.lock:
+            retcode_set = Sii9777OutputPixelFormatSet(self.device.drv_instance, byref(expect_pPixFmt))
+        self._test_api_retcode("Sii9777OutputPixelFormatSet", retcode_set)
+
+        actual_pPixFmt = Sii9777PixFrm_t()
+        actual_pPixFmt.clrFmt = Sii9777ClrFmt_t()
+        actual_pPixFmt.crSmpl = Sii9777CrSmpl_t()
+        actual_pPixFmt.bitDepth = Sii9777BitDepth_t()
+        with self.device.lock:
+            retcode_get = Sii9777OutputPixelFormatGet(self.device.drv_instance, byref(actual_pPixFmt))
+
+        self._test_api_retcode("Sii9777OutputPixelFormatGet", retcode_get)
+        self.assertEquals(actual_pPixFmt.clrFmt, expect_pPixFmt.clrFmt,
+                          msg="The expect pPixFmt.clrFmt should be %d" % expect_pPixFmt.clrFmt)
+        self.assertEquals(actual_pPixFmt.crSmpl, expect_pPixFmt.crSmpl,
+                          msg="The expect pPixFmt.crSmpl should be %d" % expect_pPixFmt.crSmpl)
+        self.assertEquals(actual_pPixFmt.bitDepth, expect_pPixFmt.bitDepth,
+                          msg="The expect pPixFmt.bitDepth should be %d" % expect_pPixFmt.bitDepth)
+
+
+class PixelFormatConversionSetOnTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777PixelFormatConversionSet() and Sii9777PixelFormatConversionGet() when set pEnable to True.
+    API Description:
+        Enables/Disables video pixel format conversion.
+        Pixel format conversion is defined between current incoming pixel format and user requested output pixel format.
+        Note: not all conversion are supported by Sii9777 device
+    """
+
+    def setUp(self):
+        self.__is_enable = bool_t()
+        with self.device.lock:
+            Sii9777PixelFormatConversionGet(self.device.drv_instance, byref(self.__is_enable))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777PixelFormatConversionSet(self.device.drv_instance, byref(self.__is_enable))
+
+    def test_Sii9777PixelFormatConversionSet_ON(self):
+        expect_is_enable = bool_t(True)
+        with self.device.lock:
+            retcode_set = Sii9777PixelFormatConversionSet(self.device.drv_instance, byref(expect_is_enable))
+        self._test_api_retcode("Sii9777PixelFormatConversionSet", retcode_set)
+
+        actual_is_enable = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777PixelFormatConversionGet(self.device.drv_instance, byref(actual_is_enable))
+        self._test_api_retcode("Sii9777PixelFormatConversionGet", retcode_get)
+        self.assertTrue(actual_is_enable.value, "pEnable should be True")
+
+
+class PixelFormatConversionSetOffTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777PixelFormatConversionSet() and Sii9777PixelFormatConversionGet() when set pEnable to False.
+    API Description:
+        Enables/Disables video pixel format conversion.
+        Pixel format conversion is defined between current incoming pixel format and user requested output pixel format.
+        Note: not all conversion are supported by Sii9777 device
+    """
+
+    def setUp(self):
+        self.__is_enable = bool_t()
+        with self.device.lock:
+            Sii9777PixelFormatConversionGet(self.device.drv_instance, byref(self.__is_enable))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777PixelFormatConversionSet(self.device.drv_instance, byref(self.__is_enable))
+
+    def test_Sii9777PixelFormatConversionSet_OFF(self):
+        expect_is_enable = bool_t(False)
+        with self.device.lock:
+            retcode_set = Sii9777PixelFormatConversionSet(self.device.drv_instance, byref(expect_is_enable))
+        self._test_api_retcode("Sii9777PixelFormatConversionSet", retcode_set)
+
+        actual_is_enable = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777PixelFormatConversionGet(self.device.drv_instance, byref(actual_is_enable))
+        self._test_api_retcode("Sii9777PixelFormatConversionGet", retcode_get)
+        self.assertFalse(actual_is_enable.value, "pEnable should be False")
+
+
+class Sii9777PixelFormatConversionQueryTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test whether pixel format conversion is currently enabled or disabled.
+    API Description:
+        Returns whether pixel format conversion is currently enabled or disabled.
+        Note : Depending on current incoming pixel format and by the user requested output pixel format,
+               pixel format conversion may not be supported by Sii9777 device.
+               Should call Sii9777PixelFormatConversionSet first.
+    """
+
+    def setUp(self):
+        self.__is_enable = bool_t()
+        with self.device.lock:
+            Sii9777PixelFormatConversionGet(self.device.drv_instance, byref(self.__is_enable))
+
+    def test_Sii9777PixelFormatConversionQuery(self):
+        pStatus_map = {SII9777_PIX_FRM_CONV__SUPPORTED: "SII9777_PIX_FRM_CONV__ENABLED",
+                       SII9777_PIX_FRM_CONV__UNSUPPORTED: "SII9777_PIX_FRM_CONV__DISABLED"}
+
+        for pEnable in (True, False):
+            expect_is_pEnable = bool_t(pEnable)
+            with self.device.lock:
+                retcode = Sii9777PixelFormatConversionSet(self.device.drv_instance, byref(expect_is_pEnable))
+            self.assertEquals(retcode, SII_RETVAL__SUCCESS, msg="set pixel format conversion enable successfully")
+
+            actual_is_pEnable = Sii9777PixFrmConv_t()
+            with self.device.lock:
+                retcode = Sii9777PixelFormatConversionQuery(self.device.drv_instance, byref(actual_is_pEnable))
+            self._test_api_retcode("Sii9777PixelFormatConversionQuery", retcode)
+            self.assertEquals(actual_is_pEnable.value, expect_is_pEnable.value,
+                              msg="pStatus should be %s" % pStatus_map[expect_is_pEnable.value])
+
+            #tearDown
+            with self.device.lock:
+                Sii9777PixelFormatConversionSet(self.device.drv_instance, byref(self.__is_enable))
+
+#2.10.2
+#TODO: a. Don‘t know the meaning of len(API argument)
+#TODO: b. Sii9777DualLinkLutSet and Sii9777DualLinkLutGet return is right, but set value not equal to get value.
+class Sii9777DualLinkLutSetTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777DualLinkManualSet() and Sii9777DualLinkManualGet() when set video resolution IDs and
+        length of array of VidRes ID's.
+    API Description:
+        Any video resolution received on an input that matches any video resolution ID in the provided list
+        will force the video to be split through Tx1 and Tx2. Audio is output to 'primTxPort'.
+        If no match is found then both audio and video will be routed to 'primTxPort'.
+    """
+
+    def setUp(self):
+        self.__pVidRes = SII9777VidRes_t()
+        self.__len_pVidRes = uint8_t()
+        with self.device.lock:
+            Sii9777DualLinkLutGet(self.device.drv_instance, byref(self.__pVidRes), self.__len_pVidRes)
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkLutSet(self.device.drv_instance, byref(self.__pVidRes), self.__len_pVidRes)
+
+    @parametrize("expect_pVidRes", type=int, default=SII9777_VID_RES__VGA60)
+    @parametrize("expect_len_pVidRes", type=int, default=1)
+    def test_Sii9777DualLinkLutSet(self):
+        expect_pVidRes = SII9777VidRes_t(self.expect_pVidRes)
+        expect_len_pVidRes = uint8_t(self.expect_len_pVidRes)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkLutSet(self.device.drv_instance, byref(expect_pVidRes), expect_len_pVidRes)
+        self._test_api_retcode("Sii9777DualLinkLutSet", retcode_set)
+
+        actual_pVidRes = SII9777VidRes_t()
+        actual_len_pVidRes = uint8_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkLutGet(self.device.drv_instance, byref(actual_pVidRes), actual_len_pVidRes)
+        self._test_api_retcode("Sii9777DualLinkLutGet", retcode_get)
+        self.assertEquals(actual_pVidRes.value, expect_pVidRes.value,
+                          msg="The expect pVidRes should be %d" % expect_pVidRes.value)
+        self.assertEquals(actual_len_pVidRes.value, expect_len_pVidRes.value,
+                          msg="The expect length of pVidRes should be %d" % expect_len_pVidRes.value)
+
+
+class Sii9777DualLinkManualSetOnTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777DualLinkLutSet() and Sii9777DualLinkLutGet() when set bDualLink to True for
+        enable Dual output (Tx1/Tx2).
+    API Description:
+        Forces video to be split over Tx1 and Tx2 or unsplit over 'primTxPort' by manual overwrite.
+    """
+
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkManualSet_ON(self):
+        expect_is_bDualLink = bool_t(True)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkManualSet(self.device.drv_instance, byref(expect_is_bDualLink))
+        self._test_api_retcode("Sii9777DualLinkManualSet", retcode_set)
+
+        actual_is_bDualLink = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkManualGet(self.device.drv_instance, byref(actual_is_bDualLink))
+        self._test_api_retcode("Sii9777DualLinkManualGet", retcode_get)
+        self.assertTrue(actual_is_bDualLink.value, "bDualLink should be True")
+
+
+class Sii9777DualLinkManualSetOffTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777DualLinkManualSet() and Sii9777DualLinkManualGet() when set bDualLink to False for
+        Dual output disabled .
+    API Description:
+        Forces video to be split over Tx1 and Tx2 or unsplit over 'primTxPort' by manual overwrite.
+    """
+
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkManualSet_OFF(self):
+        expect_is_bDualLink = bool_t(False)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkManualSet(self.device.drv_instance, byref(expect_is_bDualLink))
+        self._test_api_retcode("Sii9777DualLinkManualSet", retcode_set)
+
+        actual_is_bDualLink = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkManualGet(self.device.drv_instance, byref(actual_is_bDualLink))
+        self._test_api_retcode("Sii9777DualLinkManualGet", retcode_get)
+        self.assertFalse(actual_is_bDualLink.value, "bDualLink should be False")
+
+
+class Sii9777DualLinkAutoEnableSetOnTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777DualLinkAutoEnableSet() and Sii9777DualLinkAutoEnableGet() when set bAuto to True for
+        Dual link asserted automatically .
+    API Description:
+        Selects whether Dual-link function is asserted automatically through the automatic video resolution listor
+        controlled manually by 'Sii9777DualLinkSet()'
+    """
+
+    def setUp(self):
+        self.__is_bAuto = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkAutoEnableGet(self.device.drv_instance, byref(self.__is_bAuto))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkAutoEnableSet(self.device.drv_instance, byref(self.__is_bAuto))
+
+    def test_Sii9777DualLinkAutoEnableSet_ON(self):
+        expect_is_bAuto = bool_t(True)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkAutoEnableSet(self.device.drv_instance, byref(expect_is_bAuto))
+        self._test_api_retcode("Sii9777DualLinkAutoEnableSet", retcode_set)
+
+        actual_is_bAuto = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkAutoEnableGet(self.device.drv_instance, byref(actual_is_bAuto))
+        self._test_api_retcode("Sii9777DualLinkAutoEnableGet", retcode_get)
+        self.assertTrue(actual_is_bAuto.value, "bAuto should be True")
+
+
+class Sii9777DualLinkAutoEnableSetOffTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777DualLinkAutoEnableSet() and Sii9777DualLinkAutoEnableGet() when set bAuto to False for
+        Dual link asserted manually .
+    API Description:
+        Selects whether Dual-link function is asserted automatically through the automatic video resolution listor
+        controlled manually by 'Sii9777DualLinkSet()'
+    """
+
+    def setUp(self):
+        self.__is_bAuto = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkAutoEnableGet(self.device.drv_instance, byref(self.__is_bAuto))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkAutoEnableSet(self.device.drv_instance, byref(self.__is_bAuto))
+
+    def test_Sii9777DualLinkAutoEnableSet_OFF(self):
+        expect_is_bAuto = bool_t(False)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkAutoEnableSet(self.device.drv_instance, byref(expect_is_bAuto))
+        self._test_api_retcode("Sii9777DualLinkAutoEnableSet", retcode_set)
+
+        actual_is_bAuto = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkAutoEnableGet(self.device.drv_instance, byref(actual_is_bAuto))
+        self._test_api_retcode("Sii9777DualLinkAutoEnableGet", retcode_get)
+        self.assertFalse(actual_is_bAuto.value, "bAuto should be False")
+
+
+#TODO: what is the different between Sii9777DualLinkQuery(fail when bDualLink = True) and Sii9777DualLinkManualGet(pass)
+class Sii9777DualLinkQueryTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Random set Dual link enable or disable, test Sii9777DualLinkQuery whether could return right value or not.
+    API Description:
+        Queries current state of Dual link configuration.
+    """
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkQuery(self):
+        for bDualLink in (True, False):
+            expect_is_bDualLink = bool_t(bDualLink)
+            with self.device.lock:
+                retcode_set = Sii9777DualLinkManualSet(self.device.drv_instance, byref(expect_is_bDualLink))
+            self._test_api_retcode("Sii9777DualLinkManualSet", retcode_set)
+
+            actual_is_bDualLink = bool_t()
+            with self.device.lock:
+                retcode = Sii9777DualLinkQuery(self.device.drv_instance, byref(actual_is_bDualLink))
+            self._test_api_retcode("Sii9777DualLinkQuery", retcode)
+            self.assertEquals(actual_is_bDualLink.value, expect_is_bDualLink.value,
+                              msg="pbOn should in %s" % expect_is_bDualLink.value)
+
+            #tearDown
+            with self.device.lock:
+                Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+
+class Sii9777DualLinkModeSetLeftRightTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777DualLinkModeSet() and Sii9777DualLinkModeSet() when SII9777_DUAL_LINK_MODE__LEFT_RIGHT.
+    API Description:
+        Controls the type of video splitting applied when Dual-Link is enabled.
+    """
+
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+        self.__pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            Sii9777DualLinkModeGet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkModeSet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkModeSetLeftRight(self):
+        bDualLink = bool_t(True)
+        with self.device.lock:
+            retcode = Sii9777DualLinkManualSet(self.device.drv_instance, byref(bDualLink))
+        self.assertEquals(retcode, SII_RETVAL__SUCCESS, msg="Set Dual-Link enable successfully")
+
+        expect_pDualLinkMode = Sii9777DualLinkMode_t(SII9777_DUAL_LINK_MODE__LEFT_RIGHT)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkModeSet(self.device.drv_instance, byref(expect_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeSet", retcode_set)
+
+        actual_pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkModeGet(self.device.drv_instance, byref(actual_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeGet", retcode_get)
+        self.assertEquals(actual_pDualLinkMode.value, SII9777_DUAL_LINK_MODE__LEFT_RIGHT,
+                          msg="The expect pDualLinkMode should be %d" % SII9777_DUAL_LINK_MODE__LEFT_RIGHT)
+
+
+class Sii9777DualLinkModeSetEvenOddTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777DualLinkModeSet() and Sii9777DualLinkModeSet() when SII9777_DUAL_LINK_MODE__EVEN_ODD.
+    API Description:
+        Controls the type of video splitting applied when Dual-Link is enabled.
+    """
+
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+        self.__pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            Sii9777DualLinkModeGet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkModeSet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkModeSetEvenOdd(self):
+        bDualLink = bool_t(True)
+        with self.device.lock:
+            retcode = Sii9777DualLinkManualSet(self.device.drv_instance, byref(bDualLink))
+        self.assertEquals(retcode, SII_RETVAL__SUCCESS, msg="Set Dual-Link enable successfully")
+
+        expect_pDualLinkMode = Sii9777DualLinkMode_t(SII9777_DUAL_LINK_MODE__EVEN_ODD)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkModeSet(self.device.drv_instance, byref(expect_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeSet", retcode_set)
+
+        actual_pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkModeGet(self.device.drv_instance, byref(actual_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeGet", retcode_get)
+        self.assertEquals(actual_pDualLinkMode.value, SII9777_DUAL_LINK_MODE__EVEN_ODD,
+                          msg="The expect pDualLinkMode should be %d" % SII9777_DUAL_LINK_MODE__EVEN_ODD)
+
+
+class Sii9777DualLinkModeSetPixelReorderTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777DualLinkModeSet() and Sii9777DualLinkModeSet() when SII9777_DUAL_LINK_MODE__PIXEL_REORDER.
+    API Description:
+        Controls the type of video splitting applied when Dual-Link is enabled.
+    """
+
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+        self.__pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            Sii9777DualLinkModeGet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkModeSet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkModeSetPixelReorder(self):
+        bDualLink = bool_t(True)
+        with self.device.lock:
+            retcode = Sii9777DualLinkManualSet(self.device.drv_instance, byref(bDualLink))
+        self.assertEquals(retcode, SII_RETVAL__SUCCESS, msg="Set Dual-Link enable successfully")
+
+        expect_pDualLinkMode = Sii9777DualLinkMode_t(SII9777_DUAL_LINK_MODE__PIXEL_REORDER)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkModeSet(self.device.drv_instance, byref(expect_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeSet", retcode_set)
+
+        actual_pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkModeGet(self.device.drv_instance, byref(actual_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeGet", retcode_get)
+        self.assertEquals(actual_pDualLinkMode.value, SII9777_DUAL_LINK_MODE__PIXEL_REORDER,
+                          msg="The expect pDualLinkMode should be %d" % SII9777_DUAL_LINK_MODE__PIXEL_REORDER)
+
+
+#TODO：Sii9777DualLinkSwapEnableGet and Sii9777DualLinkSwapEnableSet return 255
+class Sii9777DualLinkSwapEnableSetOnTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777DualLinkSwapEnableSet() and Sii9777DualLinkSwapEnableGet() when set pbOn to True for
+        Left/Even output on Tx2, Right/Odd output on Tx1.
+    API Description:
+        Selects mapping of dual link video content to Tx1 and Tx2 outputs.
+    """
+
+    def setUp(self):
+        self.__is_pbOn = bool_t()
+        with self.device.lock:
+            ret = Sii9777DualLinkSwapEnableGet(self.device.drv_instance, self.__is_pbOn)
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkSwapEnableSet(self.device.drv_instance, self.__is_pbOn)
+
+    def test_Sii9777DualLinkSwapEnableSet_ON(self):
+        expect_is_pbOn = bool_t(True)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkSwapEnableSet(self.device.drv_instance, expect_is_pbOn)
+        self._test_api_retcode("Sii9777DualLinkSwapEnableSet", retcode_set)
+
+        actual_is_pbOn = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkSwapEnableGet(self.device.drv_instance, actual_is_pbOn)
+        self._test_api_retcode("Sii9777DualLinkSwapEnableGet", retcode_get)
+        self.assertTrue(actual_is_pbOn.value, "pbOn should be True")
+
+
+#TODO：Sii9777DualLinkSwapEnableGet and Sii9777DualLinkSwapEnableSet return 255
+class Sii9777DualLinkSwapEnableSetOffTestCase(BaseBostonDriverTestCase):
+    """
+    Test Description:
+        Test API Sii9777DualLinkSwapEnableSet() and Sii9777DualLinkSwapEnableGet() when set pbOn to False for
+        Left/Even output on Tx1, Right/Odd output on Tx2 .
+    API Description:
+        Selects mapping of dual link video content to Tx1 and Tx2 outputs.
+    """
+
+    def setUp(self):
+        self.__is_pbOn = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkSwapEnableGet(self.device.drv_instance, self.__is_pbOn)
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkSwapEnableSet(self.device.drv_instance, self.__is_pbOn)
+
+    def test_Sii9777DualLinkSwapEnableSet_OFF(self):
+        expect_is_pbOn = bool_t(False)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkSwapEnableSet(self.device.drv_instance, expect_is_pbOn)
+        self._test_api_retcode("Sii9777DualLinkSwapEnableSet", retcode_set)
+
+        actual_is_pbOn = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkSwapEnableGet(self.device.drv_instance, actual_is_pbOn)
+        self._test_api_retcode("Sii9777DualLinkSwapEnableGet", retcode_get)
+        self.assertFalse(actual_is_pbOn.value, "pbOn should be False")
+
+
+"""
+Below API tests are added by Lychee.
+Lychee’s question list updated:
+1.	Cases “4k_SMPTE/CEA cross conversion 4096 to 3840” and “4k SMPTE/CEA cross conversion 4096 to 3840” failed in doc 2.10.3
+Q: The status of smpte4 is “pass through” and cannot be changed. We need to confirm whether this API work or not.
+2.	Cases ”TPG_PatternSetCHKRBRD” and “TPG_PatternSetCOLORBAR” test results are opposite in doc 2.10.4. E.g. set it to CHKRBRD but result is color bar
+Q: We need to confirm that pattern settings of this API is correct or not.
+3.	All cases of “TPG_VideoResolutionSet” are failed.
+Q: It seems that we cannot change boston’s video resolution by automation script via this API. We always got the resolution “None” though upstream provides 720p video to boston.
+4.	Cases “CMS_BypassSetEnable” is failed in doc 2.10.5.
+Q: We cannot enable this API so it blocks the following test in CMS. We need to know how to enable this API.
+5.	Cases “CMS_Saturation/Hue/WhitePointTempSet” failed due to “wrong type” error of parameter “clr” in doc 2.10.5. i've make them into ("not implemented")
+Q: Parameter clr’s type should be Sii9777CmsColor_t(). But API takes it as wrong type parameter. I’m working on it and try to figure it out.
+"""
+
+
+# 2.10.3
+class FourKConversionTestCase(BaseBostonDriverTestCase):
+    """
+    test failed on 4096 and 3840 conversion
+    """
+    def setUp(self):
+        self.__smpte4k = Sii9777Smpte4k_t()
+        self.smpte4k_mapper = {SII9777_SMPTE4K__PASSTHRU: "SII9777_SMPTE4K__PASSTHRU",
+                               SII9777_SMPTE4K__4096_TO_3840: "SII9777_SMPTE4K__4096_TO_3840",
+                               SII9777_SMPTE4K__3840_TO_4096: "SII9777_SMPTE4K__3840_TO_4096"}
+        with self.device.lock:
+            Sii9777Smpte4kGet(self.device.drv_instance, byref(self.__smpte4k))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777Smpte4kSet(self.device.drv_instance, byref(self.__smpte4k))
+
+    def test_Sii9777Smpte4kSetPASSTHRU(self):
+        expect_smpte4k = Sii9777Smpte4k_t(0)
+        with self.device.lock:
+            retcode = Sii9777Smpte4kSet(self.device.drv_instance, byref(expect_smpte4k))
+        self._test_api_retcode("Sii9777Smpte4kSet", retcode)
+        with self.device.lock:
+            actual_smpte4k = Sii9777Smpte4k_t()
+            Sii9777Smpte4kGet(self.device.drv_instance, byref(actual_smpte4k))
+        self.assertEquals(self.smpte4k_mapper.values()[actual_smpte4k.value],
+                          self.smpte4k_mapper.values()[expect_smpte4k.value],
+                          "4K Smpte should be %s" % self.smpte4k_mapper.values()[expect_smpte4k.value])
+
+    def test_Sii9777Smpte4kSet3840(self):
+        expect_smpte4k = Sii9777Smpte4k_t(1)
+        with self.device.lock:
+            retcode = Sii9777Smpte4kSet(self.device.drv_instance, byref(expect_smpte4k))
+        self._test_api_retcode("Sii9777Smpte4kSet", retcode)
+        with self.device.lock:
+            actual_smpte4k = Sii9777Smpte4k_t()
+            Sii9777Smpte4kGet(self.device.drv_instance, byref(actual_smpte4k))
+        self.assertEquals(self.smpte4k_mapper.values()[actual_smpte4k.value],
+                          self.smpte4k_mapper.values()[expect_smpte4k.value],
+                          "4K Smpte should be %s" % self.smpte4k_mapper.values()[expect_smpte4k.value])
+
+    def test_Sii9777Smpte4kSet4096(self):
+        expect_smpte4k = Sii9777Smpte4k_t(2)
+        with self.device.lock:
+            retcode = Sii9777Smpte4kSet(self.device.drv_instance, byref(expect_smpte4k))
+        self._test_api_retcode("Sii9777Smpte4kSet", retcode)
+        with self.device.lock:
+            actual_smpte4k = Sii9777Smpte4k_t()
+            Sii9777Smpte4kGet(self.device.drv_instance, byref(actual_smpte4k))
+        self.assertEquals(self.smpte4k_mapper.values()[actual_smpte4k.value],
+                          self.smpte4k_mapper.values()[expect_smpte4k.value],
+                          "4K Smpte should be %s" % self.smpte4k_mapper.values()[expect_smpte4k.value])
+
+
+# 2.10.4
+class TPGEnableSetTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        self.__is_enable = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(self.__is_enable))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777TpgPatternSet(self.device.drv_instance, byref(self.__is_enable))
+
+    def test_Sii9777TPGSet_ON(self):
+        expect_is_enable = Sii9777TpgPattern_t(True)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_is_enable))
+            self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_is_enable = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_is_enable))
+        self.assertTrue(actual_is_enable.value, "should be enable")
+
+    def test_Sii9777TPGSet_OFF(self):
+        expect_is_enable = Sii9777TpgPattern_t(False)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_is_enable))
+            self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_is_enable = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_is_enable))
+        self.assertFalse(actual_is_enable.value, "should be disable")
+
+
+class TPGPatternSetTestCase(BaseBostonDriverTestCase):
+    """
+    test failed on chkbrd and colorbar
+    """
+    def setUp(self):
+        self.__pattern = Sii9777TpgPattern_t()
+        self.pattern_mapper = {SII9777_TPG_PATTERN__RED: "SII9777_TPG_PATTERN__RED",
+                               SII9777_TPG_PATTERN__GREEN: "SII9777_TPG_PATTERN__GREEN",
+                               SII9777_TPG_PATTERN__BLUE: "SII9777_TPG_PATTERN__BLUE",
+                               SII9777_TPG_PATTERN__CYAN: "SII9777_TPG_PATTERN__CYAN",
+                               SII9777_TPG_PATTERN__MAGENTA: "SII9777_TPG_PATTERN__MAGENTA",
+                               SII9777_TPG_PATTERN__YELLOW: "SII9777_TPG_PATTERN__YELLOW",
+                               SII9777_TPG_PATTERN__BLACK: "SII9777_TPG_PATTERN__BLACK",
+                               SII9777_TPG_PATTERN__WHITE: "SII9777_TPG_PATTERN__WHITE",
+                               SII9777_TPG_PATTERN__GRYSCL: "SII9777_TPG_PATTERN__GRYSCL",
+                               SII9777_TPG_PATTERN__CHKBRD: "SII9777_TPG_PATTERN__CHKBRD",
+                               SII9777_TPG_PATTERN__CLRBAR: "SII9777_TPG_PATTERN__CLRBAR",
+                               SII9777_TPG_PATTERN__SPECIAL: "SII9777_TPG_PATTERN__SPECIAL"}
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(self.__pattern))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777TpgPatternSet(self.device.drv_instance, byref(self.__pattern))
+
+    def test_Sii9777TpgPatternSetRed(self):
+        expect_pattern = Sii9777TpgPattern_t(0)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+    def test_Sii9777TpgPatternSetGreen(self):
+        expect_pattern = Sii9777TpgPattern_t(1)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+    def test_Sii9777TpgPatternSetBlue(self):
+        expect_pattern = Sii9777TpgPattern_t(2)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+    def test_Sii9777TpgPatternSetCyan(self):
+        expect_pattern = Sii9777TpgPattern_t(3)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+    def test_Sii9777TpgPatternSetMagenta(self):
+        expect_pattern = Sii9777TpgPattern_t(4)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+    def test_Sii9777TpgPatternSetYellow(self):
+        expect_pattern = Sii9777TpgPattern_t(5)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+    def test_Sii9777TpgPatternSetBlack(self):
+        expect_pattern = Sii9777TpgPattern_t(6)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+    def test_Sii9777TpgPatternSetWhite(self):
+        expect_pattern = Sii9777TpgPattern_t(7)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+    def test_Sii9777TpgPatternSetGrayscale(self):
+        expect_pattern = Sii9777TpgPattern_t(8)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+    def test_Sii9777TpgPatternSetChkrbrd(self):
+        expect_pattern = Sii9777TpgPattern_t(9)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+    def test_Sii9777TpgPatternSetColorbar(self):
+        expect_pattern = Sii9777TpgPattern_t(10)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+    def test_Sii9777TpgPatternSetSpecial(self):
+        expect_pattern = Sii9777TpgPattern_t(11)
+        with self.device.lock:
+            retcode = Sii9777TpgPatternSet(self.device.drv_instance, byref(expect_pattern))
+        self._test_api_retcode("Sii9777TpgPatternSet", retcode)
+        actual_pattern = Sii9777TpgPattern_t()
+        with self.device.lock:
+            Sii9777TpgPatternGet(self.device.drv_instance, byref(actual_pattern))
+        self.assertEquals(self.pattern_mapper.values()[actual_pattern.value],
+                          self.pattern_mapper.values()[expect_pattern.value],
+                          "TPG Pattern should be %s" % self.pattern_mapper.values()[expect_pattern.value])
+
+
+class TPGVidResSetTestCase(BaseBostonDriverTestCase):
+    """
+    test failed on all cases
+    """
+    def setUp(self):
+        self.__pVidRes = SII9777VidRes_t()
+        self.vidres_mapper = {SII9777_VID_RES__NONE: "SII9777_VID_RES__NONE",  # Sii9777TpgVidResGet failed
+                              SII9777_VID_RES__VGA60: "SII9777_VID_RES__VGA60",
+                              SII9777_VID_RES__720P60: "SII9777_VID_RES__720P60",
+                              SII9777_VID_RES__1080P60: "SII9777_VID_RES__1080P60",
+                              SII9777_VID_RES__2160P60: "SII9777_VID_RES__2160P60",
+                              SII9777_VID_RES__4K2K30: "SII9777_VID_RES__4K2K30"}
+        with self.device.lock:
+            Sii9777TpgVidResGet(self.device.drv_instance, byref(self.__pVidRes))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777TpgVidResSet(self.device.drv_instance, byref(self.__pVidRes))
+
+    def test_Sii9777TpgVidResSetVga60(self):
+        expect_vidres = SII9777VidRes_t(2)
+        with self.device.lock:
+            retcode = Sii9777TpgVidResSet(self.device.drv_instance, byref(expect_vidres))
+        self._test_api_retcode("Sii9777TpgVidResSet", retcode)
+        actual_vidres = SII9777VidRes_t()
+        with self.device.lock:
+            Sii9777TpgVidResGet(self.device.drv_instance, byref(actual_vidres))
+        self.assertEquals(actual_vidres.value, expect_vidres.value,
+                          "TPG Video Resolution should be SII9777_VID_RES__VGA60")
+
+    def test_Sii9777TpgVidResSet1080p(self):
+        expect_vidres = SII9777VidRes_t(13)
+        with self.device.lock:
+            retcode = Sii9777TpgVidResSet(self.device.drv_instance, byref(expect_vidres))
+        self._test_api_retcode("Sii9777TpgVidResSet", retcode)
+        actual_vidres = SII9777VidRes_t()
+        with self.device.lock:
+            Sii9777TpgVidResGet(self.device.drv_instance, byref(actual_vidres))
+        self.assertEquals(actual_vidres.value, expect_vidres.value,
+                          "TPG Video Resolution should be SII9777_VID_RES__1080P60")
+
+    def test_Sii9777TpgVidResSet4K(self):
+        expect_vidres = SII9777VidRes_t(50)
+        with self.device.lock:
+            retcode = Sii9777TpgVidResSet(self.device.drv_instance, byref(expect_vidres))
+        self._test_api_retcode("Sii9777TpgVidResSet", retcode)
+        actual_vidres = SII9777VidRes_t()
+        with self.device.lock:
+            Sii9777TpgVidResGet(self.device.drv_instance, byref(actual_vidres))
+        self.assertEquals(actual_vidres.value, expect_vidres.value,
+                          "TPG Video Resolution should be SII9777_VID_RES__4K2K30")
+
+
+# 2.10.5
+class CMSBypassSetTestCase(BaseBostonDriverTestCase):
+    """
+    'Enable' case tests failed
+    """
+    def setUp(self):
+        self.__is_bypass = bool_t()
+        with self.device.lock:
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(self.__is_bypass))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777CmsBypassSet(self.device.drv_instance, byref(self.__is_bypass))
+
+    def test_Sii9777CmsBypassEnable(self):
+        expect_is_bypass = bool_t(True)
+        with self.device.lock:
+            retcode = Sii9777CmsBypassSet(self.device.drv_instance, byref(expect_is_bypass))
+            self._test_api_retcode("Sii9777CmsBypassSet", retcode)
+        actual_is_bypass = bool_t()
+        with self.device.lock:
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(actual_is_bypass))
+        self.assertTrue(actual_is_bypass.value, "should be True")
+
+    def test_Sii9777CmsBypassDisable(self):
+        expect_is_bypass = bool_t(False)
+        with self.device.lock:
+            retcode = Sii9777CmsBypassSet(self.device.drv_instance, byref(expect_is_bypass))
+            self._test_api_retcode("Sii9777CmsBypassSet", retcode)
+        actual_is_bypass = bool_t()
+        with self.device.lock:
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(actual_is_bypass))
+        self.assertFalse(actual_is_bypass.value, "should be False")
+
+
+@unittest.skip("not implemented")
+class CMSSaturationSetTestCase(BaseBostonDriverTestCase):
+    """
+    wrong type of clr in setup
+    """
+    def setUp(self):
+        # make sure bypass is enable
+        expect_is_bypass = bool_t(True)
+        with self.device.lock:
+            Sii9777CmsBypassSet(self.device.drv_instance, byref(expect_is_bypass))
+            actual_is_bypass = bool_t()
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(actual_is_bypass))
+        if not actual_is_bypass:
+            self.assertTrue(0, "CMS Bypass must be Enable before testing")
+
+        self.clr_mapper = {SII9777_CMS_COLOR__RED: "SII9777_CMS_COLOR__RED",
+                           SII9777_CMS_COLOR__GREEN: "SII9777_CMS_COLOR__GREEN",
+                           SII9777_CMS_COLOR__BLUE: "SII9777_CMS_COLOR__BLUE",
+                           SII9777_CMS_COLOR__CYAN: "SII9777_CMS_COLOR__CYAN",
+                           SII9777_CMS_COLOR__MAGENTA: "SII9777_CMS_COLOR__MAGENTA",
+                           SII9777_CMS_COLOR__YELLOW: "SII9777_CMS_COLOR__YELLOW",
+                           SII9777_CMS_COLOR__WHITE: "SII9777_CMS_COLOR__WHITE"}
+        # setup
+        self.__clr = Sii9777CmsColor_t()
+        self.__pSat = int8_t()
+        with self.device.lock:
+            Sii9777CmsSaturationGet(self.device.drv_instance, byref(self.__clr), byref(self.__pSat))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777CmsSaturationSet(self.device.drv_instance, byref(self.__clr), byref(self.__pSat))
+
+    def test_Sii9777CmsSaturationSetMin(self):
+        clr = Sii9777CmsColor_t(random.randint(0, len(self.clr_mapper)-1))
+        expect_pSat = int8_t(-100)
+        with self.device.lock:
+            recode = Sii9777CmsSaturationSet(self.device.drv_instance, byref(clr), byref(expect_pSat))
+            self._test_api_retcode("Sii9777CmsSaturationControl", recode)
+        acutal_pSat = int8_t()
+        with self.device.lock:
+            Sii9777CmsSaturationGet(self.device.drv_instance, byref(clr), byref(acutal_pSat))
+        self.assertEquals(acutal_pSat.value, expect_pSat.value,
+                          "Color %s 's saturation should be -100" % self.clr_mapper.values()[clr])
+
+    def test_Sii9777CmsSaturationSetMax(self):
+        clr = Sii9777CmsColor_t(random.randint(0, len(self.clr_mapper)-1))
+        expect_pSat = int8_t(100)
+        with self.device.lock:
+            recode = Sii9777CmsSaturationSet(self.device.drv_instance, byref(clr), byref(expect_pSat))
+            self._test_api_retcode("Sii9777CmsSaturationControl", recode)
+        acutal_pSat = int8_t()
+        with self.device.lock:
+            Sii9777CmsSaturationGet(self.device.drv_instance, byref(clr), byref(acutal_pSat))
+        self.assertEquals(acutal_pSat.value, expect_pSat.value,
+                          "Color %s 's saturation should be 100" % self.clr_mapper.values()[clr])
+
+    def test_Sii9777CmsSaturationSetZero(self):
+        clr = Sii9777CmsColor_t(random.randint(0, len(self.clr_mapper)-1))
+        expect_pSat = int8_t(0)
+        with self.device.lock:
+            recode = Sii9777CmsSaturationSet(self.device.drv_instance, byref(clr), byref(expect_pSat))
+            self._test_api_retcode("Sii9777CmsSaturationControl", recode)
+        acutal_pSat = int8_t()
+        with self.device.lock:
+            Sii9777CmsSaturationGet(self.device.drv_instance, byref(clr), byref(acutal_pSat))
+        self.assertEquals(acutal_pSat.value, expect_pSat.value,
+                          "Color %s 's saturation should be 0" % self.clr_mapper.values()[clr])
+
+
+@unittest.skip("not implemented")
+class CMSHueSetTestCase(BaseBostonDriverTestCase):
+    """
+    wrong type of clr in setup
+    """
+    def setUp(self):
+        # make sure bypass is enable
+        expect_is_bypass = bool_t(True)
+        with self.device.lock:
+            Sii9777CmsBypassSet(self.device.drv_instance, byref(expect_is_bypass))
+            actual_is_bypass = bool_t()
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(actual_is_bypass))
+        if not actual_is_bypass:
+            self.assertTrue(1, "CMS Bypass must be Enable before testing")
+            # TODO 1 should be 0 above
+
+        self.clr_mapper = {SII9777_CMS_COLOR__RED: "SII9777_CMS_COLOR__RED",
+                           SII9777_CMS_COLOR__GREEN: "SII9777_CMS_COLOR__GREEN",
+                           SII9777_CMS_COLOR__BLUE: "SII9777_CMS_COLOR__BLUE",
+                           SII9777_CMS_COLOR__CYAN: "SII9777_CMS_COLOR__CYAN",
+                           SII9777_CMS_COLOR__MAGENTA: "SII9777_CMS_COLOR__MAGENTA",
+                           SII9777_CMS_COLOR__YELLOW: "SII9777_CMS_COLOR__YELLOW",
+                           SII9777_CMS_COLOR__WHITE: "SII9777_CMS_COLOR__WHITE"}
+        # setup
+        self.__clr = Sii9777CmsColor_t()
+        self.__pHue = int8_t()
+        print(byref(self.__clr), self.__pHue._type_)
+        print(self.__clr.value, self.__pHue.value)
+        with self.device.lock:
+            Sii9777CmsHueGet(self.device.drv_instance, byref(self.__clr), byref(self.__pHue))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777CmsHueSet(self.device.drv_instance, byref(self.__clr), byref(self.__pHue))
+
+    def test_Sii9777CmsHueSetMin(self):
+        clr = Sii9777CmsColor_t(random.randint(0, len(self.clr_mapper)-1))
+        expect_pHue = int8_t(-100)
+        with self.device.lock:
+            recode = Sii9777CmsHueSet(self.device.drv_instance, byref(clr), byref(expect_pHue))
+            self._test_api_retcode("Sii9777CmsHueSet", recode)
+        actual_pHue = int8_t()
+        with self.device.lock:
+            Sii9777CmsHueGet(self.device.drv_instance, byref(clr), byref(actual_pHue))
+        self.assertEquals(expect_pHue.value, actual_pHue.value,
+                          "Color %s 's hue should be -100" % self.clr_mapper.values()[clr])
+
+    def test_Sii9777CmsHueSetMax(self):
+        clr = Sii9777CmsColor_t(random.randint(0, len(self.clr_mapper)-1))
+        expect_pHue = int8_t(100)
+        with self.device.lock:
+            recode = Sii9777CmsHueSet(self.device.drv_instance, byref(clr), byref(expect_pHue))
+            self._test_api_retcode("Sii9777CmsHueSet", recode)
+        actual_pHue = int8_t()
+        with self.device.lock:
+            Sii9777CmsHueGet(self.device.drv_instance, byref(clr), byref(actual_pHue))
+        self.assertEquals(expect_pHue.value, actual_pHue.value,
+                          "Color %s 's hue should be 100" % self.clr_mapper.values()[clr])
+
+    def test_Sii9777CmsHueSetZero(self):
+        clr = Sii9777CmsColor_t(random.randint(0, len(self.clr_mapper)-1))
+        expect_pHue = int8_t(0)
+        with self.device.lock:
+            recode = Sii9777CmsHueSet(self.device.drv_instance, byref(clr), byref(expect_pHue))
+            self._test_api_retcode("Sii9777CmsHueSet", recode)
+        actual_pHue = int8_t()
+        with self.device.lock:
+            Sii9777CmsHueGet(self.device.drv_instance, byref(clr), byref(actual_pHue))
+        self.assertEquals(expect_pHue.value, actual_pHue.value,
+                          "Color %s 's hue should be 0" % self.clr_mapper.values()[clr])
+
+
+@unittest.skip("not implemented")
+class CMSWhitePointTempSetTestCase(BaseBostonDriverTestCase):
+    """
+    wrong type of clr in setup
+    """
+    def setUp(self):
+        # make sure bypass is enable
+        expect_is_bypass = bool_t(True)
+        with self.device.lock:
+            Sii9777CmsBypassSet(self.device.drv_instance, byref(expect_is_bypass))
+            actual_is_bypass = bool_t()
+            Sii9777CmsBypassGet(self.device.drv_instance, byref(actual_is_bypass))
+        if not actual_is_bypass:
+            self.assertTrue(0, "CMS Bypass must be Enable before testing")
+
+        self.clr_mapper = {SII9777_CMS_COLOR__RED: "SII9777_CMS_COLOR__RED",
+                           SII9777_CMS_COLOR__GREEN: "SII9777_CMS_COLOR__GREEN",
+                           SII9777_CMS_COLOR__BLUE: "SII9777_CMS_COLOR__BLUE",
+                           SII9777_CMS_COLOR__CYAN: "SII9777_CMS_COLOR__CYAN",
+                           SII9777_CMS_COLOR__MAGENTA: "SII9777_CMS_COLOR__MAGENTA",
+                           SII9777_CMS_COLOR__YELLOW: "SII9777_CMS_COLOR__YELLOW",
+                           SII9777_CMS_COLOR__WHITE: "SII9777_CMS_COLOR__WHITE"}
+        # setup
+        self.__clr = Sii9777CmsColor_t()
+        self.__pTemperature = int16_t()
+        with self.device.lock:
+            Sii9777CmsWhitePointTempGet(self.device.drv_instance, byref(self.__clr), byref(self.__pTemp))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777CmsWhitePointTempSet(self.device.drv_instance, byref(self.__clr), byref(self.__pTemp))
+
+    def test_Sii9777CmsWhitePointTempSetMin(self):
+        clr = Sii9777CmsColor_t(random.randint(0, len(self.clr_mapper)-1))
+        expect_pTemp = int16_t(4000)
+        with self.device.lock:
+            recode = Sii9777CmsWhitePointTempSet(self.device.drv_instance, byref(clr), byref(expect_pTemp))
+            self._test_api_retcode("Sii9777CmsWhitePointTempSet", recode)
+        actual_pTemp = int16_t()
+        with self.device.lock:
+            Sii9777CmsWhitePointTempGet(self.device.drv_instance, byref(clr), byref(actual_pTemp))
+        self.assertEquals(expect_pTemp.value, actual_pTemp.value,
+                          "Color %s 's temperature should be 4000" % self.clr_mapper.values()[clr])
+
+    def test_Sii9777CmsWhitePointTempSetMax(self):
+        clr = Sii9777CmsColor_t(random.randint(0, len(self.clr_mapper)-1))
+        expect_pTemp = int16_t(25000)
+        with self.device.lock:
+            recode = Sii9777CmsWhitePointTempSet(self.device.drv_instance, byref(clr), byref(expect_pTemp))
+            self._test_api_retcode("Sii9777CmsWhitePointTempSet", recode)
+        actual_pTemp = int16_t()
+        with self.device.lock:
+            Sii9777CmsWhitePointTempGet(self.device.drv_instance, byref(clr), byref(actual_pTemp))
+        self.assertEquals(expect_pTemp.value, actual_pTemp.value,
+                          "Color %s 's temperature should be 25000" % self.clr_mapper.values()[clr])

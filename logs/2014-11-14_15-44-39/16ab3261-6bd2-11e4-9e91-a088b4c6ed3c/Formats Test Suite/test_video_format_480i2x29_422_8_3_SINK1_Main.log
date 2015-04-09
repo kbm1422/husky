@@ -1,0 +1,11 @@
+11/14/2014 15:45:30:318> (E) 11/14/2014 15:45:30:318> 1840 125431 new AVC:(AvcSinkMain)- gAvcState:5, ftype:0x0, msgId:0x80800f
+
+11/14/2014 15:45:30:325> (E) 11/14/2014 15:45:30:325> 1841 125431 -- gAvcFlagCoonection:0x3
+
+11/14/2014 15:45:30:332> (E) 11/14/2014 15:45:30:332> 1842 125431 (AvcUtilHandlePassThru:5749)-devId:2, wvanId:127
+
+11/14/2014 15:45:30:344> (E) 11/14/2014 15:45:30:344> 1843 125431 (AvcUtilInitateConnReq)-start-devId:2, wvanId:127, devIndex:0, passThruSetup:3
+
+11/14/2014 15:45:30:349> (E) 11/14/2014 15:45:30:349> 1844 125431 (5819)BAVI: 62:AVC: send conn_req to dev 2 wvan 127: v1/a1/myport0
+11/14/2014 15:45:30:358> (E) 11/14/2014 15:45:30:358> 1845 125431 (AvcUtilInitateConnReq)-returns gAvcFlagConnection:0x3
+

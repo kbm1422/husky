@@ -1,0 +1,4 @@
+
+from simg.test.framework import TestModuleLoader
+loader = TestModuleLoader("cases.wired.boston.test_drv_video_tpg")
+loader.save_as_xml(r"D:\test_drv_video_tpg.xml")

@@ -1,0 +1,45 @@
+<!-- MHL CBUS dongle test cases -->
+<!-- Copyright (C) 2011 Simplay Labs-->
+<?xml version="1.0" encoding="utf-8"?>
+<DongleTest>
+ 	<TestCase ID="5.3.4.1" Name="5.3.4.1 CBE-Dongle: Powered-Off ZCBUS_SINK_DISCOVER" Tag="" Location=""/>
+ 	<TestCase ID="5.3.4.2" Name="5.3.4.2 CBE-Dongle: VBUS-Powered ZCBUS_SINK_DISCOVER" Tag="" Location=""/>
+ 	<TestCase ID="5.3.4.3" Name="5.3.4.3 CBE-Dongle: Locally-Powered ZCBUS_SINK_DISCOVER" Tag="" Location=""/>
+ 	<TestCase ID="5.3.5.1" Name="5.3.5.1 CBT-Dongle: Time from Dongle Power applied until Dongle CBUS leaves HIGH-Z" Tag="" Location=""/>
+ 	<TestCase ID="5.3.6.1" Name="5.3.6.1 CBE-Dongle: Post-Discovery Passive Pulldown ZCBUS_SINK_ON Resistance" Tag="" Location=""/>
+ 	<TestCase ID="5.3.6.2" Name="5.3.6.2 CBE-Dongle: CBUS Capacitance" Tag="" Location=""/>
+ 	<TestCase ID="5.3.6.3" Name="5.3.6.3 CBE-Dongle: Arbitrate/Sync/Data Drive LOW Voltage" Tag="" Location=""/>
+ 	<TestCase ID="5.3.6.4" Name="5.3.6.4 CBE-Dongle: Arbitrate/Sync/Data Drive HIGH Voltage" Tag="" Location=""/>
+ 	<TestCase ID="5.3.7.1" Name="5.3.7.1 CBT-Dongle: Arbitration/Sync/Data Active Drive HIGH Duration" Tag="" Location=""/>
+ 	<TestCase ID="5.3.7.2" Name="5.3.7.2 CBT-Dongle: Arbitration/Sync/Data Edge Rate" Tag="" Location=""/>
+ 	<TestCase ID="5.3.8.1" Name="5.3.8.1 CBT-Dongle: Arb, Sync, Data HIGH and LOW Timing" Tag="" Location=""/>
+ 	<TestCase ID="5.3.9.1" Name="5.3.9.1 CBT-Dongle: Response to Link Level NACK" Tag="" Location=""/>
+ 	<TestCase ID="5.3.10.1" Name="5.3.10.1 CBT-Dongle: ACK Output Timing in Nanoseconds" Tag="" Location=""/>
+ 	<TestCase ID="5.3.10.2" Name="5.3.10.2 CBT-Dongle: ACK Drive HIGH Duration" Tag="" Location=""/>
+ 	<TestCase ID="5.3.11.1" Name="5.3.11.1 CBT-Dongle: Dongle uses Case 2 Regular Arbitration after NACK" Tag="" Location=""/>
+ 	<TestCase ID="5.3.11.2" Name="5.3.11.2 CBT-Dongle: Dongle uses Case 3 Long Re-arbitration when it Gives up the Bus" Tag="" Location=""/>
+ 	<TestCase ID="5.3.11.3" Name="5.3.11.3 CBT-Dongle: Dongle uses Case 1 Back-to-Back Timing (No Re-arbitration)" Tag="" Location=""/>
+ 	<TestCase ID="5.3.13.1" Name="5.3.13.1 CBE-Dongle: Discovery Sensitivity to Input Voltages" Tag="" Location=""/>
+ 	<TestCase ID="5.3.14.1" Name="5.3.14.1 CBT-Dongle: Valid Wake Pulse Timing" Tag="" Location=""/>
+ 	<TestCase ID="5.3.14.2" Name="5.3.14.2 CBT-Dongle: Valid Discovery Pulse Timing" Tag="" Location=""/>
+ 	<TestCase ID="5.3.14.3" Name="5.3.14.3 CBT-Dongle: Dongle in Standby Discovers on Wake plus Discovery Pulse Sequence" Tag="" Location=""/>
+ 	<TestCase ID="5.3.15.1" Name="5.3.15.1 CBT-Dongle: First Discovery Pulse Should be Ignored" Tag="" Location=""/>
+ 	<TestCase ID="5.3.15.2" Name="5.3.15.2 CBT-Dongle: Last Discovery Pulse Should be Ignored" Tag="" Location=""/>
+ 	<TestCase ID="5.3.16.1" Name="5.3.16.1 CBE-Dongle: Sensitivity to VIH/VIL" Tag="" Location=""/>
+ 	<TestCase ID="5.3.17.1" Name="5.3.17.1 CBT-Dongle: Loses Arbitration Correctly" Tag="" Location=""/>
+ 	<TestCase ID="5.3.17.2" Name="5.3.17.2 CBT-Dongle: End of Discovery to Early Source-side Arbitration" Tag="" Location=""/>
+ 	<TestCase ID="5.3.17.3" Name="5.3.17.3 CBT-Dongle: Dongle Loses Arbitration Collision Correctly" Tag="" Location=""/>
+ 	<TestCase ID="5.3.18.1" Name="5.3.18.1 CBT-Dongle: Bit Timing Sensitivity" Tag="" Location=""/>
+ 	<TestCase ID="5.3.19.1" Name="5.3.19.1 CBT-Dongle: Response to Packet with Bad Parity" Tag="" Location=""/>
+ 	<TestCase ID="5.3.20.1" Name="5.3.20.1 CBT-Dongle: Response to ACKs with Different Timings" Tag="" Location=""/>
+ 	<TestCase ID="5.3.21.1" Name="5.3.21.1 CBT-Dongle: Dongle Receives Case 1 Back-to-Back Transfers" Tag="" Location=""/>
+ 	<TestCase ID="5.3.22.1" Name="5.3.22.1 CBT-Dongle: Source Wins Arbitration, then No Packet, when Dongle is Idle" Tag="" Location=""/>
+ 	<TestCase ID="5.3.23.1" Name="5.3.23.1 CBT-Dongle: CBUS LOW for Less than Minimum TSINK_CBUS_DISCONN Reject Time" Tag="" Location=""/>
+ 	<TestCase ID="5.3.23.2" Name="5.3.23.2 CBT-Dongle: CBUS LOW for Greater than Maximum TSINK_CBUS_DISCONN Reject Time" Tag="" Location=""/>
+ 	<TestCase ID="5.3.23.3" Name="5.3.23.3 CBT-Dongle: Dongle Disconnect on Non-MHL Side Causes CLR_HPD" Tag="" Location=""/>
+ 	<TestCase ID="5.3.24.1" Name="5.3.24.1 CBE-Dongle: Dongle DUT VBUS Output" Tag="" Location=""/>
+ 	<TestCase ID="5.3.25.1" Name="5.3.25.1 CBE-Dongle: Dongle DUT VBUS Input" Tag="" Location=""/>
+ 	<TestCase ID="5.3.26.1" Name="5.3.26.1 CBT-Dongle: Dongle DUT VBUS Transition" Tag="" Location=""/>
+ 	<TestCase ID="5.1.1.7" Name="5.1.1.7 RxSense Impedance for Powered Dongle" Tag="" Location=""/>
+ 	<TestCase ID="5.1.1.8" Name="5.1.1.8 RxSense Impedance for Unpowered Dongle" Tag="" Location=""/>
+</DongleTest>

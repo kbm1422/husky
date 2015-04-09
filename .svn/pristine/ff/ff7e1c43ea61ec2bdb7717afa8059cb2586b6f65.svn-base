@@ -1,0 +1,29 @@
+<?xml version="1.0" ?>
+<TestSuite name="Boston Driver RX HDCP Test Suite">
+    <LinkedTestCase name="Sii9777HdcpDdcSet, Sii9777HdcpDdcGet" class="cases.wired.boston.test_drv_rx_hdcp.HdcpDdcTestCase">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="rx_port" value="%(rx_port)s"/>
+    </LinkedTestCase>
+    <TestCase name="Sii9777HdcpStreamManageInfoQuery" class="cases.wired.boston.test_drv_rx_hdcp.HdcpStreamManageInfoQueryTestCase" method="test_Sii9777HdcpStreamManageInfoQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase name="Sii9777RxHdcpBksvOwnQuery" class="cases.wired.boston.test_drv_rx_hdcp.RxHdcpBksvOwnQueryTestCase" method="test_Sii9777RxHdcpBksvOwnQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+    <TestCase name="Sii9777RxHdcpRxIdOwnQuer" class="cases.wired.boston.test_drv_rx_hdcp.RxHdcpRxIdOwnQueryTestCase" method="test_Sii9777RxHdcpRxIdOwnQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+	<TestCase name="Sii9777HdcpStatusQuery" class="cases.wired.boston.test_drv_rx_hdcp.HdcpStatusQueryTestCase" method="test_Sii9777HdcpStatusQuery">
+		<Attribute name="device" value="%(device)s"/>
+        <Attribute name="rx_port" value="%(rx_port)s"/>
+	</TestCase>
+    <LinkedTestCase name="Sii9777HdcpRepeaterEnableSet, Sii9777HdcpRepeaterEnableGet" class="cases.wired.boston.test_drv_rx_hdcp.HdcpRepeaterEnableTestCase">
+        <Attribute name="device" value="%(device)s"/>
+    </LinkedTestCase>
+    <TestCase name="Sii9777HdcpBksvRxidListSet" class="cases.wired.boston.test_drv_rx_hdcp.HdcpBksvRxidListTestCase" method="test_Sii9777HdcpBksvRxidListSet">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+	<TestCase name="Sii9777HdcpTopologySet" class="cases.wired.boston.test_drv_rx_hdcp.HdcpTopologyTestCase" method="test_Sii9777HdcpTopologySet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+</TestSuite>

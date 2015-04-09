@@ -1,0 +1,192 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import unittest
+from ctypes import byref
+from simg.test.framework import parametrize
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+from cases.wired.boston.base import BaseBostonDriverTestCase, BOOT_STATUS_MAPPER, AV_LINK_MAPPER
+
+# 2.5, 2.6
+
+
+class GeneralTestCase(BaseBostonDriverTestCase):
+    @unittest.skip("already been tested when device adapter open.")
+    def test_Sii9777Create(self):
+        pass
+
+    @unittest.skip("already been tested when device adapter close.")
+    def test_Sii9777Delete(self):
+        pass
+
+    @unittest.skip("not implemented")
+    def test_Sii9777ConfigureSet(self):
+        pass
+
+    @unittest.skip("already been tested when device adapter event subject open.")
+    def test_Sii9777Handle(self):
+        pass
+
+    def test_Sii9777ChipIdQuery(self):
+        chip_id = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777ChipIdQuery(self.device.drv_instance, byref(chip_id))
+        self.assertEquals(retcode, SII_RETVAL__SUCCESS, "Sii9777ChipIdQuery return code should be SII_RETVAL__SUCCESS")
+        self.assertEquals(chip_id.value, 0x9777, "The chip id should be 0x9777")
+
+    def test_Sii9777ChipRevisionQuery(self):
+        chip_revision = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777ChipRevisionQuery(self.device.drv_instance, byref(chip_revision))
+        self._test_api_retcode("Sii9777ChipRevisionQuery", retcode)
+        self.assertEquals(chip_revision.value, self.device.chip_revision,
+                          msg="The chip id should be %d" % self.expected_chip_revision)
+
+    def test_Sii9777ProductIdQuery(self):
+        product_id = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777ProductIdQuery(self.device.drv_instance, byref(product_id))
+        self._test_api_retcode("Sii9777ProductIdQuery", retcode)
+        self.assertEquals(product_id.value, 0x9777, "The product id should be 0x9777")
+
+    @parametrize("expect_firmware_version", type=int)
+    def test_Sii9777FirmwareVersionQuery(self):
+        actual_firmware_version = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777FirmwareVersionQuery(self.device.drv_instance, byref(actual_firmware_version))
+        self._test_api_retcode("Sii9777FirmwareVersionQuery", retcode)
+        self.assertEquals(actual_firmware_version.value, self.expect_firmware_version,
+                          msg="The firmware version should be 0X%X" % self.expect_firmware_version)
+
+    @parametrize("expect_release_timestamp", type=int)
+    def test_Sii9777ReleaseTimeStampQuery(self):
+        actual_release_timestamp = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777ReleaseTimeStampQuery(self.device.drv_instance, byref(actual_release_timestamp))
+        self._test_api_retcode("Sii9777ReleaseTimeStampQuery", retcode)
+        self.assertEquals(actual_release_timestamp.value, self.expect_release_timestamp,
+                          msg="The release timestamp should be %s" % self.expect_release_timestamp)
+
+    def test_Sii9777BootStatusQuery(self):
+        status = Sii9777BootStat_t()
+        with self.device.lock:
+            retcode = Sii9777BootStatusQuery(self.drv_instance, byref(status))
+        self._test_api_retcode("Sii9777BootStatusQuery", retcode)
+        logger.debug("Current boot status is %s", BOOT_STATUS_MAPPER[status.value])
+        self.assertIn(status.value, BOOT_STATUS_MAPPER.keys(),
+                      msg="Boot status should in %s" % BOOT_STATUS_MAPPER.values())
+
+    @unittest.skip("not implemented")
+    def test_Sii9777EventFlagsMaskSet(self):
+        pass
+
+    def test_Sii9777EventFlagsMaskGet(self):
+        actual_event_flags_mask = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777EventFlagsMaskGet(self.device.drv_instance, byref(actual_event_flags_mask))
+        self._test_api_retcode("Sii9777EventFlagsMaskGet", retcode)
+        self.assertEquals(actual_event_flags_mask, 0xFFFFFFFF,
+                          msg="The event flags mark should be 0xFFFFFFFF")
+
+    def test_Sii9777EventFlagsQuery(self):
+        actual_event_flags = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777EventFlagsQuery(self.device.drv_instance, byref(actual_event_flags))
+        self._test_api_retcode("Sii9777EventFlagsQuery", retcode)
+        self.assertEquals(actual_event_flags, 0x00000000,
+                          msg="The event flags mark should be 0x00000000")
+
+
+class StandbySetOnTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        self.__is_standby = bool_t()
+        with self.device.lock:
+            Sii9777StandbyGet(self.device.drv_instance, byref(self.__is_standby))
+
+        if self.__is_standby.value is not False:
+            with self.device.lock:
+                precondition = bool_t(False)
+                Sii9777StandbySet(self.device.drv_instance, byref(precondition))
+
+    def tearDown(self):
+        Sii9777StandbySet(self.device.drv_instance, byref(self.__is_standby))
+
+    def test_Sii9777StandbySet_ON(self):
+        with self.device.evt_subject.listen(SII9777_EVENT_FLAGS__AV_LINK_CHNG) as listener:
+            expect_is_standby = bool_t(True)
+            with self.device.lock:
+                retcode = Sii9777StandbySet(self.device.drv_instance, byref(expect_is_standby))
+            self._test_api_retcode("Sii9777StandbySet", retcode)
+            event = listener.get(timeout=3.0)
+            self.assertIsNotNone(event,
+                                 msg="should receive event SII9777_EVENT_FLAGS__AV_LINK_CHNG after set standby on")
+
+        expect_av_link = SII9777_AV_LINK__NONE
+        actual_av_link = Sii9777AvLink_t()
+        with self.device.lock:
+            Sii9777AvLinkQuery(self.device.drv_instnace, byref(actual_av_link))
+        self.assertEquals(actual_av_link.value, expect_av_link, "AV link should be SII9777_AV_LINK__NONE")
+
+        actual_is_standby = bool_t()
+        with self.device.lock:
+            Sii9777StandbyGet(self.device.drv_instance, byref(actual_is_standby))
+        self.assertTrue(actual_is_standby.value, "should in standby mode")
+
+
+class StandBySetOffTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        self.__is_standby = bool_t()
+        with self.device.lock:
+            Sii9777StandbyGet(self.device.drv_instance, byref(self.__is_standby))
+
+        if self.__is_standby.value is not True:
+            with self.device.lock:
+                precondition = bool_t(True)
+                Sii9777StandbySet(self.device.drv_instance, byref(precondition))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777StandbySet(self.device.drv_instance, byref(self.__is_standby))
+
+    def test_Sii9777StandbySet_OFF(self):
+        with self.device.evt_subject.listen(SII9777_EVENT_FLAGS__AV_LINK_CHNG) as listener:
+            except_is_standby = bool_t(False)
+            with self.device.lock:
+                retcode = Sii9777StandbySet(self.device.drv_instance, byref(except_is_standby))
+            self._test_api_retcode("Sii9777StandbySet", retcode)
+            event = listener.get(timeout=3.0)
+            self.assertIsNotNone(event, "should receive SII9777_EVENT_FLAGS__AV_LINK_CHNG after set standby off")
+
+        expect_av_link = AV_LINK_MAPPER.copy()
+        expect_av_link.pop(SII9777_AV_LINK__NONE)
+        actual_av_link = Sii9777AvLink_t()
+        with self.device.lock:
+            Sii9777AvLinkQuery(self.device.drv_instnace, byref(actual_av_link))
+        self.assertIn(actual_av_link.value, expect_av_link.keys(), "AV link should in %s" % expect_av_link.values())
+
+        actual_is_standby = bool_t()
+        with self.device.lock:
+            retcode = Sii9777StandbyGet(self.device.drv_instance, byref(actual_is_standby))
+        self._test_api_retcode("Sii9777StandbyGet", retcode)
+        self.assertFalse(actual_is_standby.value, "should in operational mode")
+
+
+@unittest.skip("not implemented")
+class GPIOControlTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777GpioConfigSet(self):
+        pass
+
+    def test_Sii9777GpioConfigGet(self):
+        pass
+
+    def test_Sii9777GpioOutputSet(self):
+        pass
+
+    def test_Sii9777GpioOutputClr(self):
+        pass
+
+    def test_Sii9777GpioQuery(self):
+        pass

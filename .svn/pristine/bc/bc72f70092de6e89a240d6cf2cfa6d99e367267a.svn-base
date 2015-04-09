@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestDescription>
+  <Summary>JAX Multichannel Test</Summary>
+  <!--
+    sendout:       optional, default true
+    attempt:       optional, default is 3
+    smtpserver:    optional, default is 172.25.0.3
+    sender:        optional, default is sqagroup@siliconimage.com
+    recevers:      required, using semicolon(;) as the the separator
+    -->
+  <MailReport sendout="true" attempt="3" smtpserver="172.25.0.3" sender="sqagroup@siliconimage.com" receivers="rui.ji@siliconimage.com" />
+  <TestRunner>
+    <!--
+        rsrcname: resource name which match with the name defined in resource.xml
+        -->
+    <TestContext rsrcname="JAX1"></TestContext>
+    <TestDefinition>
+      <!--define a test suite directly-->
+      <!-- a sample suite definition, which only include one case-->
+      <!--<TestSuite name="JAX_multichannel">-->
+        <!--<For list="range(1)" type="expression">-->
+          <!--<TestCase class="cases.wireless.jax.test_multichannel.MultichannelTestCase" method="test_hr2_lr" />-->
+        <!--</For>-->
+      <!--</TestSuite>-->
+      <TestLoader load="cases.wireless.jax.test_multichannel" type="MODULE"/>
+    </TestDefinition>
+  </TestRunner>
+</TestDescription>

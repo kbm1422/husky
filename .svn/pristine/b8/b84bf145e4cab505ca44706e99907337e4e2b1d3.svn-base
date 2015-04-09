@@ -1,0 +1,204 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+import time
+from ctypes import byref
+from simg import fs
+from simg.test.framework import parametrize, skip, TestContextManager
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+
+from base import BaseBostonDriverTestCase, BOOT_STATUS_MAPPER, RX_PORT_MAPPER
+
+
+class GeneralTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777Create(self):
+        self._pass("already been tested when open device adapter.")
+
+    def test_Sii9777Delete(self):
+        self._pass("already been tested when close device adapter.")
+
+    def test_Sii9777Handle(self):
+        self._pass("already been tested when open device adapter event subject.")
+
+    def test_Sii9777ChipIdQuery(self):
+        chip_id = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777ChipIdQuery(self.device.drv_instance, byref(chip_id))
+        self.assertEquals(retcode, 0, "Sii9777ChipIdQuery return code should be SII_RETVAL__SUCCESS")
+        self.assertEquals(chip_id.value, 0x9777, "The chip id should be 0x9777")
+
+    @parametrize("expect_chip_revision", type=int, default=0x10)
+    def test_Sii9777ChipRevisionQuery(self):
+        chip_revision = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777ChipRevisionQuery(self.device.drv_instance, byref(chip_revision))
+        self._test_api_retcode("Sii9777ChipRevisionQuery", retcode)
+        self.assertEquals(chip_revision.value, self.expect_chip_revision,
+                          msg="The chip id should be %d" % self.expect_chip_revision)
+
+    def test_Sii9777ProductIdQuery(self):
+        product_id = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777ProductIdQuery(self.device.drv_instance, byref(product_id))
+        self._test_api_retcode("Sii9777ProductIdQuery", retcode)
+        self.assertEquals(product_id.value, 0x9777, "The product id should be 0x9777")
+
+    @parametrize("expect_firmware_version", type=int)
+    def test_Sii9777FirmwareVersionQuery(self):
+        actual_firmware_version = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777FirmwareVersionQuery(self.device.drv_instance, byref(actual_firmware_version))
+        self._test_api_retcode("Sii9777FirmwareVersionQuery", retcode)
+        self.assertEquals(actual_firmware_version.value, self.expect_firmware_version,
+                          msg="The firmware version should be 0X%X" % self.expect_firmware_version)
+
+    @parametrize("expect_release_timestamp", type=int)
+    def test_Sii9777ReleaseTimeStampQuery(self):
+        actual_release_timestamp = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777ReleaseTimeStampQuery(self.device.drv_instance, byref(actual_release_timestamp))
+        self._test_api_retcode("Sii9777ReleaseTimeStampQuery", retcode)
+        self.assertEquals(actual_release_timestamp.value, self.expect_release_timestamp,
+                          msg="The release timestamp should be %s" % self.expect_release_timestamp)
+
+    def test_Sii9777BootStatusQuery(self):
+        status = Sii9777BootStat_t()
+        with self.device.lock:
+            retcode = Sii9777BootStatusQuery(self.device.drv_instance, byref(status))
+        self._test_api_retcode("Sii9777BootStatusQuery", retcode)
+        logger.debug("Current boot status is %s", BOOT_STATUS_MAPPER[status.value])
+        self.assertIn(status.value, BOOT_STATUS_MAPPER.keys(),
+                      msg="Boot status should in %s" % BOOT_STATUS_MAPPER.values())
+
+    def test_Sii9777EventFlagsMaskSet(self):
+        self._pass("already been tested when open device adapter.")
+
+    def test_Sii9777EventFlagsMaskGet(self):
+        actual_event_flags_mask = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777EventFlagsMaskGet(self.device.drv_instance, byref(actual_event_flags_mask))
+        self._test_api_retcode("Sii9777EventFlagsMaskGet", retcode)
+        self.assertEquals(actual_event_flags_mask.value, 0xFFFFFFFF,
+                          msg="The event flags mark should be 0xFFFFFFFF")
+
+    @skip("TODO")
+    def test_Sii9777EventFlagsQuery(self):
+        actual_event_flags = uint32_t()
+        with self.device.lock:
+            retcode = Sii9777EventFlagsQuery(self.device.drv_instance, byref(actual_event_flags))
+        self._test_api_retcode("Sii9777EventFlagsQuery", retcode)
+        self.assertNotEquals(actual_event_flags.value, 0x00000000L, msg="The event flags should be 0x00000000")
+
+
+class ConfigureTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        self.__config = Sii9777Config_t()
+        with self.device.lock:
+            Sii9777ConfigureGet(self.device.drv_instance, byref(self.__config))
+
+    def test_Sii9777ConfigureSet(self):
+        expect_config = Sii9777Config_t()
+        expect_config.pNameStr = "test-cfg"
+        expect_config.bDeviceReset = bool_t(False)
+        with self.device.lock:
+            retcode = Sii9777ConfigureSet(self.device.drv_instance, byref(expect_config))
+        self._test_api_retcode("Sii9777ConfigureSet", retcode)
+
+        actual_config = Sii9777Config_t()
+        with self.device.lock:
+            retcode = Sii9777ConfigureGet(self.device.drv_instance, byref(actual_config))
+        self._test_api_retcode("Sii9777ConfigureGet", retcode)
+
+        self.assertSequenceEqual((actual_config.pNameStr, actual_config.bDeviceReset),
+                                 (expect_config.pNameStr, expect_config.bDeviceReset),
+                                 msg="The config should be (pNameStr=%s, bDeviceReset=%s)" % (expect_config.pNameStr,
+                                                                                              expect_config.bDeviceReset))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777ConfigureSet(self.device.drv_instance, byref(self.__config))
+
+
+@parametrize("rx_port", type=str, choice=RX_PORT_MAPPER.keys())
+class InputSelectTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777InputSelect(self):
+        expect_rx_port = Sii9777RxPort_t(RX_PORT_MAPPER[self.rx_port])
+        with self.device.lock:
+            retcode = Sii9777InputSelectSet(self.device.drv_instance, byref(expect_rx_port))
+        self._test_api_retcode("Sii9777InputSelectSet", retcode)
+
+        actual_rx_port = Sii9777RxPort_t()
+        with self.device.lock:
+            retcode = Sii9777InputSelectGet(self.device.drv_instance, byref(actual_rx_port))
+        self._test_api_retcode("Sii9777InputSelectGet", retcode)
+        self.assertEquals(actual_rx_port.value, expect_rx_port.value,
+                          msg="the input port should be %s" % expect_rx_port.value)
+        time.sleep(5)
+
+
+class StandbySetTestCase(BaseBostonDriverTestCase):
+    def setUp(self):
+        context = TestContextManager.current_context()
+        resource = context.resource
+        self.webcam = resource.webcam
+        self.capture_image_dir = os.path.join(self.logdir, "images")
+        fs.mkpath(self.capture_image_dir)
+        self.capture_image_name = os.path.join(self.capture_image_dir, self.name+".jpg")
+
+        self.__is_standby = bool_t()
+        with self.device.lock:
+            Sii9777StandbyGet(self.device.drv_instance, byref(self.__is_standby))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777StandbySet(self.device.drv_instance, byref(self.__is_standby))
+
+    def _test_Sii9777StandbySet(self, value):
+        if self.__is_standby.value is value:
+            with self.device.lock:
+                logger.debug("Set standby status to opposite value %s", not value)
+                opposite = bool_t(not value)
+                Sii9777StandbySet(self.device.drv_instance, byref(opposite))
+
+        expect_is_standby = bool_t(value)
+        with self.device.lock:
+            retcode = Sii9777StandbySet(self.device.drv_instance, byref(expect_is_standby))
+        self._test_api_retcode("Sii9777StandbySet", retcode)
+
+        actual_is_standby = bool_t()
+        with self.device.lock:
+            Sii9777StandbyGet(self.device.drv_instance, byref(actual_is_standby))
+        self._test_api_retcode("Sii9777StandbyGet", retcode)
+        self.assertEquals(actual_is_standby.value, expect_is_standby.value, "should in standby mode")
+
+        time.sleep(5)
+        self.webcam.capture_image(self.capture_image_name)
+
+    def test_Sii9777StandbySet_ON(self):
+        self._test_Sii9777StandbySet(True)
+
+    def test_Sii9777StandbySet_OFF(self):
+        self._test_Sii9777StandbySet(False)
+
+
+@skip("TODO")
+class GPIOControlTestCase(BaseBostonDriverTestCase):
+    def test_Sii9777GpioConfigSet(self):
+        pass
+
+    def test_Sii9777GpioConfigGet(self):
+        pass
+
+    def test_Sii9777GpioOutputSet(self):
+        pass
+
+    def test_Sii9777GpioOutputClr(self):
+        pass
+
+    def test_Sii9777GpioQuery(self):
+        pass
+

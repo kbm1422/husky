@@ -1,0 +1,414 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+import re
+import time
+import errno
+import subprocess
+from abc import ABCMeta, abstractmethod
+from swam3 import SWAM3Connection
+
+
+from simg.net.ssh import SSHClient
+from simg.util import sstring
+
+from simg.devadapter import BaseDeviceAdapter, DeviceAdapterError
+from simg.devadapter.logsubject import UeventLogSubject
+from .base import CommandInterface, VendorMsg
+from simg.devadapter.wired.base import Mhl2Interface
+
+class BAConnection(SWAM3Connection):
+    def upgradeFirmware(self, filename):
+        """
+        ERROR: AP port not opened<EOF>
+        ERROR: Module not supported<EOF>
+        ERROR: File not exists<EOF>
+        ERROR: Open file failed<EOF>
+        ERROR: Upgrade firmware failed<EOF>
+        OK: Upgrade firmware succeeded<EOF>
+        """
+        if not os.path.exists(filename):
+            raise OSError(errno.ENOENT, "Firmware '%s' not exists" % filename)
+
+        resp = self.sendcmd("svr_apcommand full_upgrade=%s" % filename, timeout=120.0)
+        try:
+            match = re.search(r"ERROR: (.*)", resp)
+            if match:
+                raise DeviceAdapterError(match.group(1))
+        finally:
+            self.reset()
+
+    def reset(self):
+        return self.sendcmd("svr_apcommand reset")
+
+
+class BaseDriverAdapter(BaseDeviceAdapter, CommandInterface):
+    __metaclass__ = ABCMeta
+
+    def __init__(self, uevent_exepath, android_serial=None, devpath="/sys/devices/virtual/video/sii6400", **kwargs):
+        super(BaseDriverAdapter, self).__init__(**kwargs)
+        self._android_serial = android_serial
+        self._devpath = devpath
+        self._diagpath = os.path.join(self._devpath, "diag")
+        self._wihdpath = os.path.join(self._devpath, "wihd")
+        self._wvanpath = os.path.join(self._wihdpath, "wvan")
+        self.uevent = UeventLogSubject(uevent_exepath, android_serial)
+
+    def open(self):
+        self.uevent.open()
+
+    def close(self):
+        self.uevent.close()
+
+    @abstractmethod
+    def run(self, cmd):
+        """
+        This is a template method.
+        See <Template Method> design pattern for detail: http://www.oodesign.com/template-method-pattern.html
+        """
+        pass
+
+    def dmesg(self):
+        resp = None
+        if self._android_serial:
+            resp = self.run("dmesg -c")
+        else:
+            resp = self.run("dmesg | tail")
+        return resp[1]
+
+    def __diag_send(self, cmd):
+        # do cleanup first
+        while True:
+            if not self.__diag_recv():
+                break
+        cmd = "echo %s > /sys/devices/virtual/video/sii6400/diag/cmd" % cmd
+        self.run(cmd)
+
+    def __diag_recv(self):
+        cmd = "cat /sys/devices/virtual/video/sii6400/diag/cmd_output"
+        resp = self.run(cmd)
+        return resp[1]
+
+    def sendcmd(self, cmd, timeout=5.0, interval=0.5, trim=True):
+        self.__diag_send(cmd)
+        startTime = time.time()
+        data = None
+        while True:
+            time.sleep(interval)
+            resp = self.__diag_recv()
+            if resp:
+                data = resp
+                break
+            else:
+                if time.time() - startTime > timeout:
+                    break
+        return data
+
+    def setMode(self, mode):
+        self.run("echo %s > /sys/devices/virtual/video/sii6400/mode" % mode)
+
+    def getMode(self):
+        resp = self.run("cat /sys/devices/virtual/video/sii6400/mode")
+        return resp[1]
+    def getMhlConnected(self):
+        resp = self.run("cat /sys/devices/virtual/video/sii6400/mhl/connection_state")
+        return resp[1]
+
+    def resetMode(self):
+        self.setMode("off")
+        self.setMode("wihd")
+
+    def scan(self, duration=0, interval=0):
+        self.run("echo %s > /sys/devices/virtual/video/sii6400/wihd/wvan/scan_duration" % duration)
+        self.run("echo %s > /sys/devices/virtual/video/sii6400/wihd/wvan/scan_interval" % interval)
+        self.run("echo 1 > /sys/devices/virtual/video/sii6400/wihd/wvan/scan")
+
+    def stop_scan(self):
+        resp = self.run("echo 0 > /sys/devices/virtual/video/sii6400/wihd/wvan/scan")
+        return resp[1]
+
+    def join(self, wvan):
+        if not isinstance(wvan, list):
+            raise TypeError("wvan should be a list")
+        # dest = [ wvan["id"], wvan["hr"], wvan["lr"]]
+        self.run("echo %s > /sys/devices/virtual/video/sii6400/wihd/wvan/join" % wvan)
+
+    def search(self):
+        self.run("echo 1 > /sys/devices/virtual/video/sii6400/wihd/search")
+
+    def catJoin(self):
+        resp = self.run("cat /sys/devices/virtual/video/sii6400/wihd/wvan/join")
+        return eval(resp[1])
+
+    def catConnect(self):
+        resp = self.run("cat /sys/devices/virtual/video/sii6400/wihd/connect")
+        return resp[1]
+
+    def runCmd(self, cmd):
+        self.run("echo %s > /sys/devices/virtual/video/sii6400/diag/cmd" % cmd)
+
+    def emptyCmdOutput(self):
+        self.run("cat /dev/null > /sys/devices/virtual/video/sii6400/diag/cmd_output")
+
+    def catCmdOutput(self):
+        resp = self.run("cat /sys/devices/virtual/video/sii6400/diag/cmd_output")
+        return resp[1]
+
+    def connect(self, dstMacAddr):
+        dstMacAddr = sstring.trimMacAddress(dstMacAddr)
+        self.run("echo %s > /sys/devices/virtual/video/sii6400/wihd/connect" % dstMacAddr.replace(":", ""))
+
+    def disconnect(self, timeout=3):
+        self.run("echo 0 > /sys/devices/virtual/video/sii6400/wihd/disconnect")
+
+    def upgradeFirmware(self, filename):
+        raise NotImplementedError
+
+    def setMacAddress(self, macaddr):
+        resp = self.sendcmd("custparamset 0 %s" % sstring.trimMacAddress(macaddr))
+        if "OK" not in resp:
+            raise DeviceAdapterError("set mac address failed with value: %s" % macaddr)
+
+    def getMacAddress(self):
+        resp = self.run("cat /sys/devices/virtual/video/sii6400/wihd/self/mac_addr")
+        return sstring.trimMacAddress(resp[1])
+
+    def setDeviceName(self, name):
+        self.run("echo %s > /sys/devices/virtual/video/sii6400/wihd/self/name" % name)
+
+    def getDeviceName(self):
+        resp = self.run("cat /sys/devices/virtual/video/sii6400/wihd/self/name")
+        return resp[1]
+
+    def getFwVersion(self):
+        resp = self.run("cat /sys/devices/virtual/video/sii6400/fw_version")
+        return resp[1]
+
+    def getFwBuild(self):
+        fw_ver = self.getFwVersion()
+        fw_num = re.search("(\d{5})", fw_ver).group(1)
+        return str('SVN') + fw_num
+
+    def getDevState(self):
+        resp = self.run("cat /sys/devices/virtual/video/sii6400/wihd/state")
+        return resp[1]
+
+    def getLinkQuality(self):
+        resp = self.run("cat /sys/devices/virtual/video/sii6400/wihd/remote_device/signal_strength")
+        return resp[1]
+
+    def setVendorMsgVendorId(self, vendorID):
+        cmd = "echo %s > /sys/devices/virtual/video/sii6400/wihd/vendor_msg/vendor_id" % vendorID.replace(":", "")
+        resp = self.run(cmd)
+        return resp[1]
+
+    def setVendorMsgDestMacAddr(self, dstMacAddr):
+        cmd = "echo %s > /sys/devices/virtual/video/sii6400/wihd/vendor_msg/dest_mac_addr" % dstMacAddr.replace(":", "")
+        resp = self.run(cmd)
+        return resp[1]
+
+    def setVendorMsgFilter(self, msgFilter):
+        cmd = "echo %s > /sys/devices/virtual/video/sii6400/wihd/vendor_msg/recv_filter" % msgFilter.replace(":", "")
+        resp = self.run(cmd)
+        return resp[1]
+
+    def sendVendorMsg(self, msg):
+        if not isinstance(msg, VendorMsg):
+            raise TypeError("msg is not a VendorMsg")
+        self.setVendorMsgVendorId(msg.vendorID.replace(":", ""))
+        self.setVendorMsgDestMacAddr(msg.dstMacAddr.replace(":", ""))
+        cmd = "echo %s > /sys/devices/virtual/video/sii6400/wihd/vendor_msg/send" % msg.data.replace(":", "")
+        resp = self.run(cmd)
+        return resp[1]
+
+    def getHRLinkQuality(self):
+        value = None
+        cmd = "get_hr_link_quality"
+        resp = self.sendcmd(cmd)
+        if "OK" in resp:
+            lines = resp.split("\n")
+            data = lines[0]
+            match = re.search("HR_LINK_QUALITY=(.*)", data)
+            if match:
+                value = match.group(1)
+                value = int(value.strip())
+            else:
+                raise DeviceAdapterError("Can't get hr link quality")
+        else:
+            raise DeviceAdapterError("'%s' failed" % cmd)
+        return value
+
+    def getTemperature(self):
+        resp = self.sendcmd("get_temperature", interval=1, timeout=3)
+        return int(resp.split("\n")[0])
+
+    def _custparamget(self, index, name):
+        value = None
+        cmd = "custparamget %s" % index
+        resp = self.sendcmd(cmd)
+        if "OK" in resp:
+            lines = resp.split("\n")
+            data = lines[0]
+            match = re.search("%s=(.*)" % name, data)
+            if match:
+                value = match.group(1)
+                value = value.rstrip("\r\n")
+            else:
+                raise DeviceAdapterError("Can't get the param value with index '%s' and name '%s'" % (index, name))
+        else:
+            raise DeviceAdapterError("'%s' failed" % cmd)
+        return value
+
+    def _get_umac_sm_show(self):
+        resp = self.sendcmd("umac_sm_show", interval=1, timeout=10)
+        data = resp.split("\n")[1]
+        match = re.search("Cfg:.*HR=(\d{1}), LR=(\d{1}), Dev=(\w+), WVAN_ID=(\d+)", data)
+        if match:
+            hr = match.group(1)
+            lr = match.group(2)
+            dev = match.group(3)
+            wvan_id = match.group(4)
+            ret = (int(hr), int(lr), dev, int(wvan_id))
+            return ret
+        else:
+            raise DeviceAdapterError("umac_sm_show failed")
+
+    def getManuFacturerId(self):
+        mid = self._custparamget(1, "manufacturer_id")
+        return sstring.trimHexString(mid)
+
+    def getProductId(self):
+        pid = self._custparamget(3, "product_id")
+        return sstring.trimHexString(pid)
+
+    def getRegulatoryId(self):
+        rid = self._custparamget(4, "regulatory_id")
+        return sstring.trimHexString(rid)
+
+    def getWvanName(self):
+        return self._custparamget(6, "dflt_wvan_name")
+
+
+
+    def getMHLLocalCapOffset(self):
+        cmd = "cat /sys/devices/virtual/video/sii6400/mhl/devcap/local_offset"
+        resp = self.run(cmd)
+        return resp[1]
+    def setMHLLocalCapOffset(self,offset):
+        cmd = "echo %s > /sys/devices/virtual/video/sii6400/mhl/devcap/local_offset" % offset
+        resp = self.run(cmd)
+        return resp[1]
+    def setMHLLocalCap(self,val):
+        cmd = "echo %s > /sys/devices/virtual/video/sii6400/mhl/devcap/local" % val
+        resp = self.run(cmd)
+        return resp[1]
+    def getMHLLocalCap(self):
+        cmd = "cat /sys/devices/virtual/video/sii6400/mhl/devcap/local"
+        resp = self.run(cmd)
+        return resp[1]
+    def getMHLState(self):
+        cmd = "cat /sys/devices/virtual/video/sii6400/mhl/connection_state"
+        resp = self.run(cmd)
+        return resp[1]
+    def getMHLRemoteCap(self):
+        cmd = "cat /sys/devices/virtual/video/sii6400/mhl/devcap/remote"
+        resp = self.run(cmd)
+        return resp[1]
+    def getMHLRemoteCapOffset(self):
+        cmd = "cat /sys/devices/virtual/video/sii6400/mhl/devcap/remote_offset"
+        resp = self.run(cmd)
+        return resp[1]
+
+    def setMHLRemoteCapOffset(self, val):
+        cmd = "echo %s > /sys/devices/virtual/video/sii6400/mhl/devcap/remote_offset" % val
+        resp = self.run(cmd)
+        return resp[1]
+
+    def setMHLRemoteCap(self,val):
+        cmd = "echo %s > /sys/devices/virtual/video/sii6400/mhl/devcap/remote" % val
+        resp = self.run(cmd)
+        return resp[1]
+
+    def send_msc_message(self, opcode,code):
+        #step1 : send rap value
+        #step2: check rap value is sent succesful
+        #step3: check out_status value which return from downstream,0x00:No error;0x01:Ineffective key code;0x02:Responder Buzy "
+        # return["",message",0x00] is right
+        code = "0x%02x"% code
+        cmd = " echo %s > /sys/devices/virtual/video/sii6400/mhl/%s/out" % (code, opcode)
+        resp1 = self.run(cmd)[1]
+        time.sleep(0.5)
+        cmd = "cat /sys/devices/virtual/video/sii6400/mhl/%s/out" % opcode
+        resp2 = self.run(cmd)[1]
+        time.sleep(0.5)
+        cmd = "cat /sys/devices/virtual/video/sii6400/mhl/%s/out_status" % opcode
+        resp3 = int(self.run(cmd)[1], 16)
+        return resp1, resp2, resp3
+
+    def recv_msc_message(self,opcode):
+        #step1: cat recevie rap from upperstream
+        #step2: cat recevie rap in_status is denied
+        cmd = "cat /sys/devices/virtual/video/sii6400/mhl/%s/in"%opcode
+        resp1 = self.run(cmd)[1]
+        cmd = "cat /sys/devices/virtual/video/sii6400/mhl/%s/in_status" % opcode
+        resp2 = self.run(cmd)[1]
+        print resp1,resp2
+        return resp1, resp2
+
+    def setMSCInputDevice(self, opcode, keycode):
+        cmd = "echo %s > /sys/devices/virtual/video/sii6400/mhl/%s/input_dev" % (keycode, opcode)
+        resp = self.run(cmd)
+        return resp[1]
+
+    def getMSCInputDevice(self, opcode):
+        cmd = "cat /sys/devices/virtual/video/sii6400/mhl/%s/input_dev" % opcode
+        resp = self.run(cmd)
+        return resp[1]
+
+    def enableMSCInputDev(self,opcode):
+        cmd = " echo 0x00 > /sys/devices/virtual/video/sii6400/mhl/%s/input_dev" % opcode
+        resp = self.run(cmd)
+        return resp[1]
+
+
+    def setMSCInStatus(self,opcode,code):
+        cmd = "echo %s >  /sys/devices/virtual/video/sii6400/mhl/%s/in_status" % (code,opcode)
+        resp = self.run(cmd)
+        return resp[0]
+
+
+
+
+
+
+class BADriverAdapter(BaseDriverAdapter):
+    def run(self, cmd):
+        if self._android_serial:
+            cmd = 'adb -s %s shell "%s"' % (self._android_serial, cmd)
+        logger.debug("run: cmd=%s", cmd)
+        proc = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, stdin=subprocess.PIPE)
+        stdout = proc.communicate()[0]
+        logger.debug("run: retcode=%s, output=\n%s", proc.returncode, stdout)
+        if proc.returncode != 0:
+            raise DeviceAdapterError("command '%s' error" % cmd)
+        return proc.returncode, stdout
+
+    def exit(self):
+        pass
+
+
+class SSHDriverAdapter(BaseDriverAdapter):
+    def __init__(self, adb, host, port=22, username=None, password=None, devpath="/sys/devices/virtual/video/sii6400"):
+        BaseDriverAdapter.__init__(self, adb, devpath)
+        self._sshclient = SSHClient(host, port, username, password)
+
+    def run(self, cmd):
+        return self._sshclient.run(cmd)
+
+    def exit(self):
+        if self._sshclient:
+            self._sshclient.close()

@@ -1,0 +1,48 @@
+<!-- MHL CBUS source test cases -->
+<!-- Copyright (C) 2011 Simplay Labs-->
+<?xml version="1.0" encoding="utf-8"?>
+<SourceTest>
+	<TestCase ID="3.3.4.1" Name="3.3.4.1 CBT-Source: Time from Source VBUS Application to Discovery Pulses" Tag="" Location=""/>
+	<TestCase ID="3.3.5.1" Name="3.3.5.1 CBE-Source: Response to Initial Plug-in to MHL Device" Tag="" Location=""/>
+	<TestCase ID="3.3.5.2" Name="3.3.5.2 CBE-Source: Response to Sink Priming Pulse to MHL device" Tag="" Location=""/>
+	<TestCase ID="3.3.5.3" Name="3.3.5.3 CBE-Source: Pre-Discovery Success Pull-up HIGH Voltage" Tag="" Location=""/>
+	<TestCase ID="3.3.5.4" Name="3.3.5.4 CBE-Source: Discovery Pulse Drive HIGH Voltage" Tag="" Location=""/>
+	<TestCase ID="3.3.5.5" Name="3.3.5.5 CBE-Source: Discovery Pulse float LOW Voltage" Tag="" Location=""/>
+	<TestCase ID="3.3.6.1" Name="3.3.6.1 CBT-Source: Wake Pulse HIGH, LOW and GAP Times" Tag="" Location=""/>
+	<TestCase ID="3.3.6.2" Name="3.3.6.2 CBT-Source: Wake Pulse Delay Until Discovery Pulse" Tag="" Location=""/>
+	<TestCase ID="3.3.6.3" Name="3.3.6.3 CBT-Source: Discovery Pulse HIGH and LOW Time" Tag="" Location=""/>
+	<TestCase ID="3.3.6.4" Name="3.3.6.4 CBT-Source: Wake/Discovery Pulse Edge Rate" Tag="" Location=""/>
+	<TestCase ID="3.3.7.1" Name="3.3.7.1 CBE-Source: Post-Discovery Pull-up HIGH Voltage" Tag="" Location=""/>
+	<TestCase ID="3.3.7.2" Name="3.3.7.2 CBE-Source: Post-Discovery Passive Pull-up HIGH ZCBUS_SRC_ON Resistance" Tag="" Location=""/>
+	<TestCase ID="3.3.7.3" Name="3.3.7.3 CBE-Source: CBUS Capacitance" Tag="" Location=""/>
+	<TestCase ID="3.3.7.4" Name="3.3.7.4 CBE-Source: Arbitrate/Sync/Data Drive LOW Voltage" Tag="" Location=""/>
+	<TestCase ID="3.3.7.5" Name="3.3.7.5 CBE-Source: Arbitrate/Sync/Data Drive HIGH Voltage" Tag="" Location=""/>
+	<TestCase ID="3.3.8.1" Name="3.3.8.1 CBT-Source: Arbitration/Sync/Data Active Drive HIGH Duration" Tag="" Location=""/>
+	<TestCase ID="3.3.8.2" Name="3.3.8.2 CBT-Source: Arbitration/Sync/Data Edge Rate" Tag="" Location=""/>
+	<TestCase ID="3.3.9.1" Name="3.3.9.1 CBT-Source: Arb, Sync, Data HIGH and LOW Times" Tag="" Location=""/>
+	<TestCase ID="3.3.10.1" Name="3.3.10.1 CBT-Source: Response to Link-Level NACK" Tag="" Location=""/>
+	<TestCase ID="3.3.11.1" Name="3.3.11.1 CBT-Source: ACK Output Timing in Nanoseconds" Tag="" Location=""/>
+	<TestCase ID="3.3.11.2" Name="3.3.11.2 CBT-Source: ACK Drive HIGH Duration" Tag="" Location=""/>
+	<TestCase ID="3.3.12.1" Name="3.3.12.1 CBT-Source: Source Uses Case 2 Regular Arbitration after NACK" Tag="" Location=""/>
+	<TestCase ID="3.3.12.2" Name="3.3.12.2 CBT-Source: Source Uses Case 3 Long Re-arbitration" Tag="" Location=""/>
+	<TestCase ID="3.3.14.1" Name="3.3.14.1 CBT-Source: Discovery; Sink Responds Correctly; Time to Source Pull-up Change" Tag="" Location=""/>
+	<TestCase ID="3.3.14.2" Name="3.3.14.2 CBT-Source: Discovery; Sink Responds Late" Tag="" Location=""/>
+	<TestCase ID="3.3.14.3" Name="3.3.14.3 CBT-Source: Discovery; Sink Never Drives MHL+/- HIGH" Tag="" Location=""/>
+	<TestCase ID="3.3.15.1" Name="3.3.15.1 CBE-Source: Sensitivity to VIH/VIL" Tag="" Location=""/>
+	<TestCase ID="3.3.16.1" Name="3.3.16.1 CBT-Source: Source Behaves Appropriately when Sink Wins Arbitration" Tag="" Location=""/>
+	<TestCase ID="3.3.16.2" Name="3.3.16.2 CBT-Source: End of Discovery to Early Sink-side Arbitration" Tag="" Location=""/>
+	<TestCase ID="3.3.17.1" Name="3.3.17.1 CBT-Source: Bit Timing Sensitivity  " Tag="" Location=""/>
+	<TestCase ID="3.3.18.1" Name="3.3.18.1 CBT-Source: Response to Packet with Bad Parity  " Tag="" Location=""/>
+	<TestCase ID="3.3.19.1" Name="3.3.19.1 CBT-Source: Response to ACKs with Different Timings" Tag="" Location=""/>
+	<TestCase ID="3.3.20.1" Name="3.3.20.1 CBT-Source: Source receives Case 1 Back-to-Back Transfers" Tag="" Location=""/>
+	<TestCase ID="3.3.21.1" Name="3.3.21.1 CBT-Source: Sink wins Arbitration, then No Packet, when Source is Idle" Tag="" Location=""/>
+	<TestCase ID="3.3.22.1" Name="3.3.22.1 CBT-Source: Remove MHL+/- Pull-ups for Less than Glitch Reject Time" Tag="" Location=""/>
+	<TestCase ID="3.3.22.2" Name="3.3.22.2 CBT-Source: Remove MHL+/- Pull-up for More than Glitch Reject Time" Tag="" Location=""/>
+	<TestCase ID="3.3.22.3" Name="3.3.22.3 CBT-Source: Time from Disconnect until VOUT Falls" Tag="" Location=""/>
+	<TestCase ID="3.3.23.1" Name="3.3.23.1 CBE-Source: Source DUT Prediscovery VBUS Input    " Tag="" Location=""/>
+	<TestCase ID="3.3.23.2" Name="3.3.23.2 CBE-Source: Source DUT Prediscovery VBUS Output, Postdiscovery VBUS Input" Tag="" Location=""/>
+	<TestCase ID="3.3.23.3" Name="3.3.23.3 CBE-Source: Source DUT VBUS Output to Dongle" Tag="" Location=""/>
+	<TestCase ID="3.3.23.4" Name="3.3.23.4 CBE-Source: Source DUT Prediscovery VBUS Input Current Draw" Tag="" Location=""/>
+	<TestCase ID="3.3.23.5" Name="3.3.23.5 CBE-Source: Source DUT Postdiscovery VBUS Input Current Draw" Tag="" Location=""/>
+ 	<TestCase ID="3.1.1.13" Name="3.1.1.13 RxSense Impedance Test" Tag="" Location=""/>
+</SourceTest>

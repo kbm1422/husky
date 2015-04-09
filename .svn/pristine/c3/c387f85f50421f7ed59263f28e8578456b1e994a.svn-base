@@ -1,0 +1,205 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+import sys
+import posixpath
+import threading
+import collections
+from xml.etree import ElementTree
+from urlparse import urljoin
+
+import common
+
+from simg.os import Daemon, DaemonService
+from simg.net.xmlrpc import MultiPathXMLRPCServer, XMLRPCDispatcher
+from simg.test.framework import TestLoop, XMLRPCTestRunner, TestRunnerAMQPLogProducer
+from simg.test.framework import TestResult, HttpRecordHandler
+from simg.util import sstring
+
+from bench import TestBenchConfiguration
+
+CaviaServer = collections.namedtuple("CaviaServer", ["host", "port", "root"])
+
+
+class TestServiceConfiguration(object):
+    def __init__(self, filename):
+        self.__filename = filename
+        self.__etree = ElementTree.parse(self.__filename)
+        self.__root = self.__etree.getroot()
+
+    def getCaviaServer(self):
+        attrs = self.__root.find("CaviaServer").attrib
+        return CaviaServer(**attrs)
+
+    def getServiceAddr(self):
+        attrs = self.__root.find("TestService").attrib
+        return attrs["host"], int(attrs["port"])
+
+    def getAMQPLogProducerUrl(self):
+        attrs = self.__root.find("TestService/TestRunnerAMQPLogProducer").attrib
+        return attrs["url"] if sstring.get_boolean(attrs["enable"]) else None
+
+
+class TestService(object):
+    xmlrpc_runners_path = "/husky/xmlrpc/testrunners"
+
+    def __init__(self, svcconf, resconf):
+        self._svcconf = svcconf
+        self._resconf = resconf
+
+        self._svcconf_parser = TestServiceConfiguration(self._svcconf)
+        self._svcaddr = self._svcconf_parser.getServiceAddr()
+        self._cavia = self._svcconf_parser.getCaviaServer()
+
+        self._mutex = threading.RLock()
+        self._rpcserver = MultiPathXMLRPCServer(self._svcaddr, allow_none=True, logRequests=False)
+
+    def newTestRunner(self, kwargs, feedback=True):
+        """
+        @param:
+            feedback: Whether feedback case result record to cavia server.
+                      If it is not cavia server request new test runner, set the value to False
+            autodelete: Whether the test runner and its xmlrpc dispatcher will be auto removed after runner is stopped.
+        """
+        uid = str(kwargs["uid"])
+        if feedback:
+            url = urljoin('http://%s:%s' % (self._cavia.host, self._cavia.port), self._cavia.root)
+            url = urljoin(url, 'testexecutions/%s/testrecords' % uid)
+            handler = HttpRecordHandler(url)
+            result = TestResult()
+            result.addRecordHandler(handler)
+            kwargs["result"] = result
+        runner = XMLRPCTestRunner(kwargs)
+        runner.add_log_producer(TestRunnerAMQPLogProducer(self._svcconf_parser.getAMQPLogProducerUrl()))
+        path = self.__generate_xmlrpc_runner_dispatcher_path(uid)
+        with self._mutex:
+            if path in self._rpcserver.dispatchers:
+                dispatcher = self._rpcserver.get_dispatcher(path)
+                runner = dispatcher.instance
+                logger.info("%s already exists, replace it", runner)
+                if runner.is_alive():
+                    raise RuntimeError("%s is alive, can't remove it", runner)
+                dispatcher.register_instance(runner)
+            else:
+                dispatcher = XMLRPCDispatcher(allow_none=True)
+                dispatcher.register_instance(runner)
+                self._rpcserver.add_dispatcher(path, dispatcher)
+        logger.debug(dispatcher)
+        logger.debug(dispatcher.instance)
+        return True
+
+    def delTestRunner(self, uid):
+        path = self.__generate_xmlrpc_runner_dispatcher_path(uid)
+        with self._mutex:
+            dispatcher = self._rpcserver.dispatchers[path]
+            runner = dispatcher.instance
+            runner.abort()
+            self._rpcserver.del_dispatcher(path)
+        return True
+
+    def __generate_xmlrpc_runner_dispatcher_path(self, uid):
+        return posixpath.join(self.xmlrpc_runners_path, uid)
+
+    def start(self):
+        logger.info("TestService startup with addr: %s", self._svcaddr)
+
+        dispatcher = XMLRPCDispatcher(allow_none=True)
+        dispatcher.register_function(self.newTestRunner)
+        dispatcher.register_function(self.delTestRunner)
+        self._rpcserver.add_dispatcher(self.xmlrpc_runners_path, dispatcher)
+
+        benches = TestBenchConfiguration(self._resconf).buildAllTestBench()
+        for bench in benches:
+            TestLoop().add_resource(bench.name, bench)
+
+        def callback_on_runner_running(runner):
+            pass
+
+        def callback_on_runner_stopped(runner):
+            uid = runner.uid
+            self._rpcserver.del_dispatcher(self.__generate_xmlrpc_runner_dispatcher_path(uid))
+
+        TestLoop().add_callback_on_runner_running(callback_on_runner_running)
+        TestLoop().add_callback_on_runner_stopped(callback_on_runner_stopped)
+        TestLoop().start()
+
+        try:
+            self._rpcserver.serve_forever()
+        except KeyboardInterrupt:
+            logger.warn("KeyboardInterrupt")
+            self.stop()
+
+    def stop(self):
+        TestLoop().stop()
+        self._rpcserver.shutdown()
+
+
+class TestServiceDaemon(Daemon):
+    _svc_name_ = "TestService" if sys.platform == "win32" else "testservice"
+    _svc_display_name_ = "SiliconImage TestService"
+
+    def _run(self):
+        self._svc = TestService(common.srvconf, common.resconf)
+        self._svc.start()
+
+    def _stop(self):
+        self._svc.stop()
+
+
+def main():
+    import argparse
+    import logging.config
+
+    parser = argparse.ArgumentParser(add_help=True)
+    parser.add_argument('--create', action='store_const', dest="option", const="create")
+    parser.add_argument('--delete', action='store_const', dest="option", const="delete")
+    args = parser.parse_args()
+
+    if args.option is None:
+        logconf = {
+            'version': 1,
+            'disable_existing_loggers': False,
+            'formatters': {
+                'verbose': {
+                    'format': '%(asctime)-15s - %(thread)-5d [%(levelname)-8s] - %(message)s'
+                }
+            },
+            'handlers': {
+                'console': {
+                    'class': 'logging.StreamHandler',
+                    'level': 'DEBUG',
+                    'formatter': 'verbose'
+                },
+                'file_debug': {
+                    'class': 'logging.handlers.RotatingFileHandler',  #must set subprocess Popen(close_fds=True)
+                    'level': 'DEBUG',
+                    'formatter': 'verbose',
+                    'filename': os.path.join(common.logdir, "srv_debug.log"),
+                    'maxBytes': 50000000,
+                    'backupCount': 10,
+                },
+            },
+            'root': {
+                'level': 'DEBUG',
+                'handlers': ['console', 'file_debug'],
+            }
+        }
+        logging.config.dictConfig(logconf)
+
+        service = TestService(common.srvconf, common.resconf)
+        service.start()
+    else:
+        dsvc = DaemonService(TestServiceDaemon)
+        if args.option == "create":
+            dsvc.create()
+        elif args.option == "delete":
+            dsvc.delete()
+        else:
+            raise ValueError
+
+if __name__ == "__main__":
+    main()

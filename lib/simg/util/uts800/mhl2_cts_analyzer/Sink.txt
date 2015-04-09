@@ -1,0 +1,47 @@
+===================================================
+	MHL System Compliance Test
+	RTL Version : 0x40
+	S/W Version : 2.04.0200 (console1.2)
+	CTS Version : 2.2
+	Driver Version : 0x05
+	Device Provider : Simplay Labs
+===================================================
+test_id : 01, 4.2.1.1 Character Synchronization Test in Normal Mode
+	ctrl [0] = Video Format
+test_id : 02, 4.2.1.2 Packet Types Test in Normal Mode
+	ctrl [0] = Video Format
+test_id : 03, 4.2.1.3 Character Synchronization Test in PackedPixel Mode
+	ctrl [0] = Video Format PP
+test_id : 04, 4.2.1.4 Packet Types Test in PackedPixel Mode
+	ctrl [0] = Video Format PP
+test_id : 05, 4.2.2.1 Video Formats in Normal Mode
+	ctrl [0] = Video Format
+test_id : 06, 4.2.2.2 Pixel Encoding in Normal Mode
+	ctrl [0] = Pixel Encoding
+test_id : 07, 4.2.2.3 Video Quantization Range
+test_id : 08, 4.2.2.4 Video Formats in PackedPixel Mode
+	ctrl [0] = Video Format PP
+test_id : 09, 4.2.2.5 Pixel Encoding in PackedPixel Mode
+	ctrl [0] = Video Format PP
+test_id : 10, 4.2.3.1 IEC 60958/IEC 61937
+	ctrl [0] = Audio Format
+test_id : 11, 4.2.3.2 Audio Clock Regeneration
+	ctrl [0] = Audio Format
+	ctrl [3] = [r] Audio N Min
+	ctrl [4] = [r] Audio N Max
+test_id : 12, 4.2.5.1 EDID Test
+test_id : 13, 4.2.5.2 Device Capability Register Test
+test_id : 14, 4.2.5.3 Device Status Register Test
+test_id : 15, 4.2.6.1 RCP Receiving Test
+	ctrl [0] = RCP selection
+test_id : 16, 4.2.6.2 RCP Transmitting Test
+	ctrl [0] = RCP selection
+test_id : 17, 4.2.7.1 RAP and RAPK Test
+test_id : 18, 4.2.8.1 3D Video Mode Support Data
+test_id : 19, 4.2.8.2 3D Video Format in Normal Mode
+	ctrl [0] = 3D Video Format
+test_id : 20, 4.2.8.3 3D Video Format in PackedPixel Mode
+	ctrl [0] = 3D Video Format PP
+test_id : 21, 4.2.9.1 UCP Receiving Test
+test_id : 22, 4.2.9.2 UCP Transmitting Test
+test_id : 23, 4.1.1 TMDS Electrical Test

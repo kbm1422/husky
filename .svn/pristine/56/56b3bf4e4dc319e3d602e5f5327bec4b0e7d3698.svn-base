@@ -1,0 +1,30 @@
+<TestSuite name="MHL3 MSC Test Suite">
+    <For list="range(1)" type="expression">
+        <TestCase class="cases.wired.test_mhl_msc_msg.MSCTestCase" method="test_msc_msg_rap">
+            <Attribute name="device_transmitter" value="%(device_transmitter)s"/>
+            <Attribute name="device_receiver" value="%(device_receiver)s"/>
+        </TestCase>
+    </For>
+    <For list="range(1)" type="expression">
+        <TestCase class="cases.wired.test_mhl_msc_msg.MSCTestCase" method="test_msc_msg_rcp_receive_normal">
+            <Attribute name="device_transmitter" value="%(device_transmitter)s"/>
+            <Attribute name="device_receiver" value="%(device_receiver)s"/>
+         </TestCase>
+    </For>
+    <For list="range(1)" type="expression">
+        <TestCase class="cases.wired.test_mhl_msc_msg.MSCTestCase" method="test_msc_msg_rcp_receive_optional">
+            <Attribute name="device_transmitter" value="%(device_transmitter)s"/>
+            <Attribute name="device_receiver" value="%(device_receiver)s"/>
+        </TestCase>
+    </For>
+    <For list="range(1)" type="expression">
+        <TestCase class="cases.wired.test_mhl_msc_msg.MSCTestCase" method="test_msc_msg_ucp">
+            <Attribute name="device_transmitter" value="%(device_transmitter)s"/>
+            <Attribute name="device_receiver" value="%(device_receiver)s"/>
+        </TestCase>
+    </For>
+    <!--<TestCase class="cases.wired.test_mhl_msc.MSCTestCase" method="test_msc_msg_rbp">-->
+        <!--<Attribute name="device_transmitter" value="%(device_transmitter)s"/>-->
+        <!--<Attribute name="device_receiver" value="%(device_receiver)s"/>-->
+    <!--</TestCase>-->
+</TestSuite>

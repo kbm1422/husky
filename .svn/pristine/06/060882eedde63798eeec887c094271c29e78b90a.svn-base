@@ -1,0 +1,41 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+from simg.devadapter import DeviceEndType
+from base import BaseBlackBoxDeviceAdapter, MscMessageInterface
+
+
+class WolverineDeviceAdapter(BaseBlackBoxDeviceAdapter, MscMessageInterface):
+    def __init__(self, blackbox_number, blackbox_comport, **kwargs):
+        super(WolverineDeviceAdapter, self).__init__(blackbox_number, blackbox_comport, 19200, **kwargs)
+
+    @property
+    def end_type(self):
+        return DeviceEndType.SOURCE
+
+    def send_msc_message(self, type, code):
+        logger.debug("send msc message: type=0x%X, code=0x%X", type, code)
+        self.write_byte(0xC8, 0x13, 0x68)
+        self.write_byte(0xC8, 0x14, type)
+        self.write_byte(0xC8, 0x15, code)
+        self.write_byte(0xC8, 0X12, 0x02)
+
+    def recv_msc_message(self):
+        raise NotImplementedError
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s [%(levelname)-8s] - %(message)s'
+    )
+
+    adpt = WolverineDeviceAdapter(0, "COM15")
+    adpt.open()
+    try:
+        v = adpt.read_byte(0xC8, 0x13)
+        print hex(v)
+    finally:
+        adpt.close()

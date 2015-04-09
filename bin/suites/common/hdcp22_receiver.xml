@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestSuite name="HDCP2.2 Receiver Test">
+  <For list="TestItem" type="xpath" param="item">
+    <TestCase name="test_receiver_%(item)s" class="cases.wired.test_hdcp22.HDCPTestCase" method="test_receiver">
+      <Attribute name="interface" value="HDMI" />
+      <Attribute name="dut" value="receiver" />
+      <Attribute name="item" value="%(item)s" />
+    </TestCase>
+  </For>
+  <TestItem>2C-01T1</TestItem>
+  <TestItem>2C-01T2</TestItem>
+  <TestItem>2C-02</TestItem>
+  <TestItem>2C-03</TestItem>
+  <TestItem>2C-04</TestItem>
+  <TestItem>2C-05</TestItem>
+</TestSuite>

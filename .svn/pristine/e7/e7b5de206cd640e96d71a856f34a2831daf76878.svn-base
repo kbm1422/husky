@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ResourceConfig>
+    <Resources>
+        <TestBench name="SAMPLE" type="wireless">
+            <TxUnit name="SRC1">
+                <!--
+                type:           required, the device type, for example: GEN3, BA, JAX
+                moduleid:       required, the "HOST ID" in SWAM3
+                tcpport:        optional, default to random an available port from 40000 to 65535
+                ap_moduleid:    required when type is BA
+                -->
+                <Device type="GEN3" moduleid="M3T" tcpport="40201" ap_moduleid=""/>
+
+                <!--
+                type: required, QD882, ASTRO870, BDP, MOBILE, VIDEOCARD
+                name: required
+                host: required when type is QD882 and ASTRO870
+                -->
+                <AVProducer type="QD882" name="QD" host="192.168.1.123"/>
+
+                <!--
+                host:       required
+                outlet:     required
+                username:   optional, default is admin
+                password:   optional, default is sqa
+                -->
+                <PSOutlet host="192.168.1.110" outlet="1" username="admin" password="sqa"/>
+            </TxUnit>
+            <RxUnit name="SINK1" >
+                <Device type="gen3" moduleid="M3R"/>
+                <AVConsumer name="SONY TV"/>
+                <PSOutlet host="192.168.1.10" outlet="2" username="admin" password="sqa"/>
+                <WebCam devnum="0"/>
+            </RxUnit>
+        </TestBench>
+
+        <TestBench name="SH-WIRED-TB1" type="wired">
+            <AVProducer type="QD882" host="192.168.1.123"/>
+
+            <AVProducer type="BDP" name="LG BDP">
+                <PSOutlet host="192.168.1.110" outlet="8"/>
+            </AVProducer>
+
+            <AVProducer type="MOBILE" name="SONY MOBILE"/>
+
+            <Devices>
+                <Transmitter type="wolverine"
+                             id="0x8240"
+                             blackbox_number="0"
+                             blackbox_comport="COM21">
+                    <PSOutlet host="192.168.1.110" outlet="10"/>
+                </Transmitter>
+
+                <Transmitter type="titan" id="0x8620" comport="COM25">
+                    <PSOutlet host="192.168.1.110" outlet="10"/>
+                </Transmitter>
+
+                <!--
+                devport:            optional, the aardvark index on current machine
+                -->
+                <Receiver type="boston" id="0x9777" comport="COM21" devport="0">
+                    <PSOutlet host="192.168.1.110" outlet="10"/>
+                </Receiver>
+
+                <!--
+                type:               required
+                id:                 required, it should start with 0x
+                mode:               DRIVER or HOST
+                host_comport:       optional, only need to be configured when mode is HOST
+                blackbox_number:    optional, only need to be configured when mode is DRIVER
+                blackbox_comport:   optional, only need to be configured when mode is DRIVER
+                ds_linktype:    required, options: HDMI, MHL12, MHL3
+                up_linktype:    required, options: HDMI, MHL12, MHL3
+                -->
+                <Transmitter type="rogue"
+                             id="0x9678"
+                             mode="DRIVER"
+                             host_comport="COM16"
+                             blackbox_number="0"
+                             blackbox_comport="COM15"
+                             ds_linktype="HDMI"
+                             ds_hdcpversion="1.x"
+                             us_linktype="HDMI"
+                             us_hdcpversion="1.x">
+                    <PSOutlet host="192.168.1.110" outlet="10"/>
+                </Transmitter>
+
+                <Repeater type="rogue"
+                          id="0x9394"
+                          mode="DRIVER"
+                          host_comport="COM16"
+                          blackbox_number="0"
+                          blackbox_comport="COM15"
+                          ds_linktype="HDMI"
+                          ds_hdcpversion="1.x"
+                          us_linktype="HDMI"
+                          us_hdcpversion="1.x">
+                    <PSOutlet host="192.168.1.110" outlet="10"/>
+                </Repeater>
+
+                <Receiver type="rogue"
+                          id="0x9679"
+                          mode="DRIVER"
+                          host_comport="COM16"
+                          blackbox_number="0"
+                          blackbox_comport="COM15"
+                          ds_linktype="HDMI"
+                          ds_hdcpversion="1.x"
+                          us_linktype="HDMI"
+                          us_hdcpversion="1.x">
+                    <PSOutlet host="192.168.1.110" outlet="10"/>
+                </Receiver>
+            </Devices>
+
+            <!--
+            type: Currently only support TV
+            name: TV name
+            input: AV input name.
+                   If provided and type is TV:
+                   1) the avconsumer module will try to find the edid from config file edid.ini.
+                   2) if found, it will set the value of attribute "edid" on AVConsumer object.
+            -->
+            <AVConsumer type="TV" name="PANASONIC_TH-L24X50C" input="HDMI">
+                <PSOutlet host="192.168.1.110" outlet="9"/>
+            </AVConsumer>
+
+            <SL8800 interface="HDMI" dut="Receiver"/>
+
+            <WebCam devnum="0"/>
+        </TestBench>
+    </Resources>
+</ResourceConfig>

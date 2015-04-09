@@ -1,0 +1,64 @@
+2014-11-14 15:44:51,813 - 8408  [DEBUG   ] - START TestCase: test_video_format_480i2x29_RGB_8
+2014-11-14 15:44:51,815 - 8408  [INFO    ] - Call actions in context with type: 2
+2014-11-14 15:44:52,237 - 8408  [INFO    ] - send: 'ss_server logfilename=D:\husky\logs\2014-11-14_15-44-39\16ab3261-6bd2-11e4-9e91-a088b4c6ed3c\Formats Test Suite\test_video_format_480i2x29_RGB_8_1_SRC1.log' to SRC1('127.0.0.1', 40201)
+2014-11-14 15:44:52,739 - 8408  [DEBUG   ] - recv: OK<EOF>
+2014-11-14 15:44:52,739 - 8408  [INFO    ] - Response: OK
+2014-11-14 15:44:52,740 - 8408  [INFO    ] - change ss_server log path done
+2014-11-14 15:44:55,842 - 8408  [INFO    ] - send: 'ss_server logfilename=D:\husky\logs\2014-11-14_15-44-39\16ab3261-6bd2-11e4-9e91-a088b4c6ed3c\Formats Test Suite\test_video_format_480i2x29_RGB_8_1_SINK1.log' to SINK1('127.0.0.1', 40603)
+2014-11-14 15:44:56,344 - 8408  [DEBUG   ] - recv: OK<EOF>
+2014-11-14 15:44:56,344 - 8408  [INFO    ] - Response: OK
+2014-11-14 15:44:56,345 - 8408  [INFO    ] - change ss_server log path done
+2014-11-14 15:44:59,348 - 8408  [INFO    ] - Apply TxUnit with index: 0
+2014-11-14 15:44:59,348 - 8408  [INFO    ] - Apply RxUnit with index: 0
+2014-11-14 15:44:59,349 - 8408  [INFO    ] - Allocate all units according to application
+2014-11-14 15:44:59,351 - 8408  [INFO    ] - enable unit <TxUnit: SRC1>
+2014-11-14 15:44:59,351 - 8408  [INFO    ] - enable unit <RxUnit: SINK1>
+2014-11-14 15:44:59,352 - 8408  [DEBUG   ] - current acquired units: OrderedDict([('SRC1', <TxUnit: SRC1>), ('SINK1', <RxUnit: SINK1>)])
+2014-11-14 15:44:59,354 - 8408  [INFO    ] - mkpath: path=[D:\husky\logs\2014-11-14_15-44-39\16ab3261-6bd2-11e4-9e91-a088b4c6ed3c\Formats Test Suite\images], mode=[511]
+2014-11-14 15:44:59,355 - 8408  [INFO    ] - send: 'nvramget 0x66 2' to SINK1('127.0.0.1', 40603)
+2014-11-14 15:44:59,857 - 8408  [DEBUG   ] - recv: Parameter 0x66=0x78 <EOF>
+
+2014-11-14 15:44:59,857 - 8408  [INFO    ] - Response: Parameter 0x66=0x78 
+2014-11-14 15:44:59,858 - 8408  [INFO    ] - send: 'nvramset 0x66 0x0 2' to SINK1('127.0.0.1', 40603)
+2014-11-14 15:45:00,364 - 8408  [DEBUG   ] - recv: OK<EOF>
+
+2014-11-14 15:45:00,364 - 8408  [INFO    ] - Response: OK
+2014-11-14 15:45:00,391 - 8408  [ERROR   ] - Traceback (most recent call last):
+  File "C:\Python27\lib\threading.py", line 783, in __bootstrap
+    self.__bootstrap_inner()
+  File "C:\Python27\lib\threading.py", line 810, in __bootstrap_inner
+    self.run()
+  File "D:\husky\lib\simg\test\framework\runner.py", line 79, in run
+    suite.run(self.result)
+  File "D:\husky\lib\simg\test\framework\suite.py", line 43, in run
+    self._runTests(result, debug)
+  File "D:\husky\lib\simg\test\framework\suite.py", line 63, in _runTests
+    self._runTestCase(test, result, debug)
+  File "D:\husky\lib\simg\test\framework\suite.py", line 88, in _runTestCase
+    self._runTest(case, result, debug)
+  File "D:\husky\lib\simg\test\framework\suite.py", line 99, in _runTest
+    test.run(result)
+  File "D:\husky\lib\simg\test\framework\case.py", line 190, in run
+    super(TestCase, self).run(result)
+  File "C:\Python27\lib\unittest\case.py", line 326, in run
+    result.addError(self, sys.exc_info())
+  File "D:\husky\lib\simg\test\framework\result.py", line 86, in addError
+    error = self._format_error(err, test)
+  File "D:\husky\lib\simg\test\framework\result.py", line 115, in _format_error
+    error = (exc_info[0], exc_info[1], test.exc_info_to_string(exc_info))
+  File "C:\Python27\lib\unittest\case.py", line 320, in run
+    self.setUp()
+  File "D:\husky\bin\cases\wireless\jax\test_formats.py", line 43, in setUp
+    self.rxunit.reset()
+AttributeError: 'RxUnit' object has no attribute 'reset'
+
+2014-11-14 15:45:01,280 - 8408  [INFO    ] - send: 'ss_server logfilename=c:\users\ywu\appdata\local\temp\tmpdqmztv.log' to SRC1('127.0.0.1', 40201)
+2014-11-14 15:45:01,782 - 8408  [DEBUG   ] - recv: OK<EOF>
+2014-11-14 15:45:01,782 - 8408  [INFO    ] - Response: OK
+2014-11-14 15:45:01,782 - 8408  [INFO    ] - change ss_server log path done
+2014-11-14 15:45:04,888 - 8408  [INFO    ] - send: 'ss_server logfilename=c:\users\ywu\appdata\local\temp\tmpqh304a.log' to SINK1('127.0.0.1', 40603)
+2014-11-14 15:45:05,390 - 8408  [DEBUG   ] - recv: OK<EOF>
+2014-11-14 15:45:05,390 - 8408  [INFO    ] - Response: OK
+2014-11-14 15:45:05,391 - 8408  [INFO    ] - change ss_server log path done
+2014-11-14 15:45:08,391 - 8408  [INFO    ] - Call actions in context with type: 3
+2014-11-14 15:45:08,391 - 8408  [DEBUG   ] - FINISH TestCase: test_video_format_480i2x29_RGB_8

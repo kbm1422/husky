@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+<TestSuite name="cases.wired.boston.test_drv_general">
+    <TestCase class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777ChipIdQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777ChipRevisionQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777ProductIdQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777FirmwareVersionQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="expect_firmware_version" value="%(expect_firmware_version)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777ReleaseTimeStampQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="expect_release_timestamp" value="%(expect_release_timestamp)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777BootStatusQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777EventFlagsMaskGet">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777EventFlagsQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_general.StandbySetOnTestCase" method="test_Sii9777StandbySet_ON">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_general.StandBySetOffTestCase" method="test_Sii9777StandbySet_OFF">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+</TestSuite>

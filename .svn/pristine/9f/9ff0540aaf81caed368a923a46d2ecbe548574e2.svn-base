@@ -1,0 +1,66 @@
+<?xml version="1.0" ?>
+<TestSuite name="cases.wired.rogue.test_si_drv_adapter_tx">
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptDsConnectStatusGetTestCase" method="test_SiiDrvAdaptDsConnectStatusGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptDsHdcpLastFailureReasonGetTestCase" method="test_SiiDrvAdaptDsHdcpLastFailureReasonGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptHdcpRcvIdListGetTestCase" method="test_SiiDrvAdaptHdcpRcvIdListGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTmdsSwingLevelSetTestCase" method="test_SiiDrvAdaptTmdsSwingLevelSet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxDsEdidReadTestCase" method="test_SiiDrvAdaptTxDsEdidRead">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxDsEdidStatusGetTestCase" method="test_SiiDrvAdaptTxDsEdidStatusGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxHdcpAksvGetTestCase" method="test_SiiDrvAdaptTxHdcpAksvGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxHdcpDsRepeaterBitGetTestCase" method="test_SiiDrvAdaptTxHdcpDsRepeaterBitGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxHdcpDsStatusGetTestCase" method="test_SiiDrvAdaptTxHdcpDsStatusGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxHdcpDsTopologyGetTestCase" method="test_SiiDrvAdaptTxHdcpDsTopologyGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxHdcpDsVerGetTestCase" method="test_SiiDrvAdaptTxHdcpDsVerGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxHdcpProtectionSetTestCase" method="test_SiiDrvAdaptTxHdcpProtectionSet_OFF">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxHdcpProtectionSetTestCase" method="test_SiiDrvAdaptTxHdcpProtectionSet_ON">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxHdcpRcvIdGetTestCase" method="test_SiiDrvAdaptTxHdcpRcvIdGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxHdcpStreamManageMsgSetTestCase" method="test_SiiDrvAdaptTxHdcpStreamManageMsgSet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxLinkTypeGetTestCase" method="test_SiiDrvAdaptTxLinkTypeGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxMuteSetTestCase" method="test_SiiDrvAdaptTxMuteSet__AV_MUTE_OFF">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxMuteSetTestCase" method="test_SiiDrvAdaptTxMuteSet__AV_MUTE_ON">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxRxSenseStatusGetTestCase" method="test_SiiDrvAdaptTxRxSenseStatusGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxTmdsOutSetTestCase" method="test_SiiDrvAdaptTxTmdsOutSet_DISABLE">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.rogue.test_si_drv_adapter_tx.SiiDrvAdaptTxTmdsOutSetTestCase" method="test_SiiDrvAdaptTxTmdsOutSet_ENABLE">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+</TestSuite>

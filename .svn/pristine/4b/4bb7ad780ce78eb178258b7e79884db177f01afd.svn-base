@@ -1,0 +1,167 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import os
+import re
+import sys
+import argparse
+
+from simg import fs
+
+
+class BostonLibBuilder(object):
+    def __init__(self, project_dir, srccode_dir, version):
+        self.__project_dir = project_dir
+        self.__srccode_dir = srccode_dir
+        self.__version = version
+        self.__project_name = os.path.basename(self.__project_dir)
+
+        self.__header_path = os.path.join(self.__project_dir, "%s.h" % self.__project_name)
+        self.__dll_path = os.path.join(self.__project_dir, "Debug", "%s.dll" % self.__project_name)
+        self.__def_path = os.path.join(self.__project_dir, "%s.def" % self.__project_name)
+        self.__pym_path = os.path.join(self.__project_dir, "%s.py" % self.__project_name)
+        self.__vrc_path = os.path.join(self.__project_dir, "version.rc")
+
+    def build_def(self):
+        names = []
+        for line in self.__get_rx_api_functions():
+            match = re.search(r"((?:Sii9777|SiiHal)\w+)", line)
+            names.append(match.group(1))
+
+        s = "LIBRARY\nEXPORTS\n\n" + "\n".join(names)
+        with open(self.__def_path, "w") as f:
+            f.write(s)
+        return self
+
+    def build_dll(self):
+        if sys.platform == "win32":
+            for found in fs.find(self.__srccode_dir, exclude="linux_test_build"):
+                if found.endswith(".h") or found.endswith(".c"):
+                    fs.copy(found, self.__project_dir)
+            project_proj = os.path.join(self.__project_dir, "%s.vcproj" % self.__project_name)
+
+            ver_lines = []
+            with open(self.__vrc_path, "r") as f:
+                for line in f.readlines():
+                    if re.search(r"FILEVERSION|PRODUCTVERSION", line):
+                        line = re.sub(r"(FILEVERSION|PRODUCTVERSION).*",
+                                      r"\1 %s" % self.__version.replace(".", ","),
+                                      line)
+                    elif re.search(r"FileVersion|ProductVersion", line):
+                        line = re.sub(r'"(FileVersion|ProductVersion)", ".*"',
+                                      r'"\1", "%s"' % self.__version.replace(".", ", "),
+                                      line)
+                    else:
+                        pass
+                    ver_lines.append(line)
+
+            with open(self.__vrc_path, "w") as f:
+                f.write("".join(ver_lines))
+
+            os.system(r"C:\Windows\Microsoft.NET\Framework\v2.0.50727\MSBuild.exe %s" % project_proj)
+        else:
+            raise NotImplementedError
+        return self
+
+    def __get_rx_api_functions(self):
+        funcs = []
+
+        si_hal_aardvark_api = os.path.join(self.__srccode_dir, "platform_example", "hal", "aardvark", "si_hal_aardvark_api.h")
+        funcs.extend(self.__class__.__find_hal_apis(si_hal_aardvark_api))
+
+        Sii9777ComLib = os.path.join(self.__srccode_dir, "driver", "sii9777common", "Sii9777ComLib.c")
+        funcs.extend(self.__class__.__find_sii_apis(Sii9777ComLib))
+
+        Sii9777RxLib = os.path.join(self.__srccode_dir, "driver", "sii9777rx", "Sii9777RxLib.c")
+        funcs.extend(self.__class__.__find_sii_apis(Sii9777RxLib))
+        return funcs
+
+    @classmethod
+    def __find_apis(cls, filename, pattern):
+        apis = []
+        with open(filename, "r") as f:
+            for line in f.readlines():
+                if re.search(pattern, line):
+                    apis.append(line)
+        return apis
+
+    @classmethod
+    def __find_hal_apis(cls, filename):
+        return cls.__find_apis(filename, r"(?:bool_t|void|int)[ \t]+SiiHal")
+
+    @classmethod
+    def __find_sii_apis(cls, filename):
+        return cls.__find_apis(filename, r"(?:SiiRetVal_t|void|SiiInst_t)[ \t]+Sii9777")
+
+    def build_header(self):
+        s = """#ifdef __cplusplus
+extern "C"{
+#endif
+
+#include <string.h>
+#include "si_datatypes.h"
+#include "si_drv_cra_api.h"
+#include "si_drv_ipc_api.h"
+#include "si_hal_aardvark_api.h"
+#include "sii9777rx_api.h"
+
+#ifdef __cplusplus
+}
+#endif
+"""
+        with open(self.__header_path, "w") as f:
+            f.write(s)
+        return self
+
+    def build_python_module(self):
+        scripts_path = os.path.join(os.path.dirname(sys.executable), "Scripts")
+        h2xml_script = os.path.join(scripts_path, "h2xml.py")
+        h2xml_output = "%s.xml" % os.path.splitext(self.__header_path)[0]
+        os.system("python %s %s -o %s -q -c" % (h2xml_script, self.__header_path, h2xml_output))
+
+        xml2py_script = os.path.join(scripts_path, "xml2py.py")
+        xml2py_output = self.__pym_path
+        xml2py_dll = self.__dll_path
+        xml2py_cmd = "python %s -c -d -k defst -l %s -o %s" % (xml2py_script, xml2py_dll, xml2py_output)
+        if sys.platform == "win32":
+            xml2py_cmd += " -m ctypes.wintypes %s" % h2xml_output
+            os.system(xml2py_cmd)
+        elif sys.platform.startswith("linux"):
+            raise NotImplementedError
+
+        pym_lines = []
+        with open(self.__pym_path, "r") as f:
+            for line in f.readlines():
+                if repr(self.__dll_path) in line:
+                    line = line.replace(repr(self.__dll_path), repr(os.path.basename(self.__dll_path)))
+                pym_lines.append(line)
+
+        with open(self.__pym_path, "w") as f:
+            f.write("".join(pym_lines))
+
+        return self
+
+
+def main():
+    parser = argparse.ArgumentParser(add_help=True)
+    parser.add_argument('--project_dir', action='store', required=True)
+    parser.add_argument('--srccode_dir', action='store', required=True)
+    parser.add_argument('--version', action='store', required=True)
+    args = parser.parse_args()
+
+    builder = BostonLibBuilder(args.project_dir, args.srccode_dir, args.version)
+    builder.build_def().build_header().build_dll().build_python_module()
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s [%(levelname)-8s] - %(message)s'
+    )
+    # builder = BostonLibBuilder(r"C:\husky\lib\simg\devadapter\wired\boston\BostonLib\Sii9777RxLib",
+    #                            r"D:\Temp\Sii9777rx_ES1_API_Source_Code_0.70.30-26550",
+    #                            "0.70.30.26550")
+    # builder.build_def().build_header().build_dll().build_python_module()
+    main()

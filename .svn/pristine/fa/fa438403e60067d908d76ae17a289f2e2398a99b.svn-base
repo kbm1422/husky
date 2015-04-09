@@ -1,0 +1,85 @@
+<?xml version="1.0" ?>
+<TestSuite name="Boston Driver General Functions Test Suite">
+    <TestCase name="Sii9777Create" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777Create">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777Delete" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777Delete">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777Handle" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777Handle">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777ChipIdQuery" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777ChipIdQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777ChipRevisionQuery" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777ChipRevisionQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="expect_chip_revision" value="%(expect_chip_revision)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777ProductIdQuery" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777ProductIdQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777FirmwareVersionQuery" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777FirmwareVersionQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="expect_firmware_version" value="%(expect_firmware_version)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777ReleaseTimeStampQuery" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777ReleaseTimeStampQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="expect_release_timestamp" value="%(expect_release_timestamp)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777BootStatusQuery" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777BootStatusQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777EventFlagsMaskSet" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777EventFlagsMaskSet">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777EventFlagsMaskGet" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777EventFlagsMaskGet">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777EventFlagsQuery" class="cases.wired.boston.test_drv_general.GeneralTestCase" method="test_Sii9777EventFlagsQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777ConfigureSet, Sii9777ConfigureGet" class="cases.wired.boston.test_drv_general.ConfigureTestCase" method="test_Sii9777ConfigureSet">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777StandbySet, Sii9777StandbyGet(ON)" class="cases.wired.boston.test_drv_general.StandbySetTestCase" method="test_Sii9777StandbySet_ON">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777StandbySet, Sii9777StandbyGet(OFF)" class="cases.wired.boston.test_drv_general.StandbySetTestCase" method="test_Sii9777StandbySet_OFF">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777GpioConfigSet" class="cases.wired.boston.test_drv_general.GPIOControlTestCase" method="test_Sii9777GpioConfigSet">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777GpioConfigGet" class="cases.wired.boston.test_drv_general.GPIOControlTestCase" method="test_Sii9777GpioConfigGet">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777GpioOutputSet" class="cases.wired.boston.test_drv_general.GPIOControlTestCase" method="test_Sii9777GpioOutputSet">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777GpioOutputClr" class="cases.wired.boston.test_drv_general.GPIOControlTestCase" method="test_Sii9777GpioOutputClr">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+
+    <TestCase name="Sii9777GpioQuery" class="cases.wired.boston.test_drv_general.GPIOControlTestCase" method="test_Sii9777GpioQuery">
+        <Attribute name="device" value="%(device)s"/>
+    </TestCase>
+</TestSuite>

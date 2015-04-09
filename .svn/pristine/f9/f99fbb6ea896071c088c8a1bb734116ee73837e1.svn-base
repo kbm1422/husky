@@ -1,0 +1,471 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+from ctypes import byref
+from simg.test.framework import parametrize, skip
+from simg.devadapter.wired.boston.Sii9777RxLib import *
+from base import BaseBostonDriverTestCase
+
+#2.10.2
+#TODO: a). The range of len?
+#TODO: b). Sii9777DualLinkLutSet and Sii9777DualLinkLutGet return is right, but set value not equal to get value.
+@skip("Manual Test")
+class Sii9777DualLinkLutSetTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777DualLinkLutSet and Sii9777DualLinkLutGet.
+    Steps:
+        1. setUp: Invoke Sii9777DualLinkLutGet to get initial pVidRes and len.
+        2. Set pVidRes and len from xml, call Sii9777DualLinkLutSet.
+           Check point: return code of Sii9777DualLinkLutSet.
+        3. Get the current pVidRes and len by invoking Sii9777DualLinkLutGet.
+           Check point: a) return code of Sii9777DualLinkLutGet.
+                        b) pVidRes and len should be equal to set.
+        4. tearDown: Invoke Sii9777DualLinkLutSet to set back the value of initial pVidRes and len.
+    """
+
+    def setUp(self):
+        self.__pVidRes = Sii9777VidRes_t()
+        self.__len_pVidRes = uint8_t()
+        with self.device.lock:
+            Sii9777DualLinkLutGet(self.device.drv_instance, byref(self.__pVidRes), self.__len_pVidRes)
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkLutSet(self.device.drv_instance, byref(self.__pVidRes), self.__len_pVidRes)
+
+    @parametrize("expect_pVidRes", type=int, default=SII9777_VID_RES__VGA60)
+    @parametrize("expect_len_pVidRes", type=int, default=1)
+    def test_Sii9777DualLinkLutSet(self):
+        expect_pVidRes = Sii9777VidRes_t(self.expect_pVidRes)
+        expect_len_pVidRes = uint8_t(self.expect_len_pVidRes)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkLutSet(self.device.drv_instance, byref(expect_pVidRes), expect_len_pVidRes)
+        self._test_api_retcode("Sii9777DualLinkLutSet", retcode_set)
+
+        actual_pVidRes = Sii9777VidRes_t()
+        actual_len_pVidRes = uint8_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkLutGet(self.device.drv_instance, byref(actual_pVidRes), actual_len_pVidRes)
+        self._test_api_retcode("Sii9777DualLinkLutGet", retcode_get)
+        self.assertEquals(actual_pVidRes.value, expect_pVidRes.value,
+                          msg="The expect pVidRes should be %d" % expect_pVidRes.value)
+        self.assertEquals(actual_len_pVidRes.value, expect_len_pVidRes.value,
+                          msg="The expect length of pVidRes should be %d" % expect_len_pVidRes.value)
+
+
+@skip("Manual Test")
+class Sii9777DualLinkManualSetOnTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777DualLinkManualSet and Sii9777DualLinkManualGet when set bDualLink to True.
+    Steps:
+        1. setUp: Invoke Sii9777DualLinkManualGet to get initial bDualLink.
+        2. Set bDualLink to True, call Sii9777DualLinkManualSet.
+           Check point: return code of Sii9777DualLinkManualSet.
+        3. Get the current bDualLink by invoking Sii9777DualLinkManualGet.
+           Check point: a) return code of Sii9777DualLinkManualGet.
+                        b) bDualLink should be True.
+        4. tearDown: Invoke Sii9777DualLinkManualSet to set back the value of initial bDualLink.
+    """
+
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkManualSet_ON(self):
+        expect_is_bDualLink = bool_t(True)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkManualSet(self.device.drv_instance, byref(expect_is_bDualLink))
+        self._test_api_retcode("Sii9777DualLinkManualSet", retcode_set)
+
+        actual_is_bDualLink = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkManualGet(self.device.drv_instance, byref(actual_is_bDualLink))
+        self._test_api_retcode("Sii9777DualLinkManualGet", retcode_get)
+        self.assertTrue(actual_is_bDualLink.value, "bDualLink should be True")
+
+
+@skip("Manual Test")
+class Sii9777DualLinkManualSetOffTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777DualLinkManualSet and Sii9777DualLinkManualGet when set bDualLink to False.
+    Steps:
+        1. setUp: Invoke Sii9777DualLinkManualGet to get initial bDualLink.
+        2. Set bDualLink to False, call Sii9777DualLinkManualSet.
+           Check point: return code of Sii9777DualLinkManualSet.
+        3. Get the current bDualLink by invoking Sii9777DualLinkManualGet.
+           Check point: a) return code of Sii9777DualLinkManualGet.
+                        b) bDualLink should be False.
+        4. tearDown: Invoke Sii9777DualLinkManualSet to set back the value of initial bDualLink.
+    """
+
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkManualSet_OFF(self):
+        expect_is_bDualLink = bool_t(False)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkManualSet(self.device.drv_instance, byref(expect_is_bDualLink))
+        self._test_api_retcode("Sii9777DualLinkManualSet", retcode_set)
+
+        actual_is_bDualLink = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkManualGet(self.device.drv_instance, byref(actual_is_bDualLink))
+        self._test_api_retcode("Sii9777DualLinkManualGet", retcode_get)
+        self.assertFalse(actual_is_bDualLink.value, "bDualLink should be False")
+
+
+@skip("Manual Test")
+class Sii9777DualLinkAutoEnableSetOnTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777DualLinkAutoEnableSet and Sii9777DualLinkAutoEnableGet when set bAuto to True.
+    Steps:
+        1. setUp: Invoke Sii9777DualLinkAutoEnableGet to get initial bAuto.
+        2. Set bAuto to True, call Sii9777DualLinkAutoEnableSet.
+           Check point: return code of Sii9777DualLinkAutoEnableSet.
+        3. Get the current bAuto by invoking Sii9777DualLinkAutoEnableGet.
+           Check point: a) return code of Sii9777DualLinkAutoEnableGet.
+                        b) bAuto should be True.
+        4. tearDown: Invoke Sii9777DualLinkAutoEnableSet to set back the value of initial bAuto.
+    """
+
+    def setUp(self):
+        self.__is_bAuto = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkAutoEnableGet(self.device.drv_instance, byref(self.__is_bAuto))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkAutoEnableSet(self.device.drv_instance, byref(self.__is_bAuto))
+
+    def test_Sii9777DualLinkAutoEnableSet_ON(self):
+        expect_is_bAuto = bool_t(True)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkAutoEnableSet(self.device.drv_instance, byref(expect_is_bAuto))
+        self._test_api_retcode("Sii9777DualLinkAutoEnableSet", retcode_set)
+
+        actual_is_bAuto = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkAutoEnableGet(self.device.drv_instance, byref(actual_is_bAuto))
+        self._test_api_retcode("Sii9777DualLinkAutoEnableGet", retcode_get)
+        self.assertTrue(actual_is_bAuto.value, "bAuto should be True")
+
+
+@skip("Manual Test")
+class Sii9777DualLinkAutoEnableSetOffTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777DualLinkAutoEnableSet and Sii9777DualLinkAutoEnableGet when set bAuto to False.
+    Steps:
+        1. setUp: Invoke Sii9777DualLinkAutoEnableGet to get initial bAuto.
+        2. Set bAuto to False, call Sii9777DualLinkAutoEnableSet.
+           Check point: return code of Sii9777DualLinkAutoEnableSet.
+        3. Get the current bAuto by invoking Sii9777DualLinkAutoEnableGet.
+           Check point: a) return code of Sii9777DualLinkAutoEnableGet.
+                        b) bAuto should be False.
+        4. tearDown: Invoke Sii9777DualLinkAutoEnableSet to set back the value of initial bAuto.
+    """
+
+    def setUp(self):
+        self.__is_bAuto = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkAutoEnableGet(self.device.drv_instance, byref(self.__is_bAuto))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkAutoEnableSet(self.device.drv_instance, byref(self.__is_bAuto))
+
+    def test_Sii9777DualLinkAutoEnableSet_OFF(self):
+        expect_is_bAuto = bool_t(False)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkAutoEnableSet(self.device.drv_instance, byref(expect_is_bAuto))
+        self._test_api_retcode("Sii9777DualLinkAutoEnableSet", retcode_set)
+
+        actual_is_bAuto = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkAutoEnableGet(self.device.drv_instance, byref(actual_is_bAuto))
+        self._test_api_retcode("Sii9777DualLinkAutoEnableGet", retcode_get)
+        self.assertFalse(actual_is_bAuto.value, "bAuto should be False")
+
+
+#TODO: what is the different between Sii9777DualLinkQuery(fail when bDualLink = True) and Sii9777DualLinkManualGet(pass)
+@skip("Manual Test")
+class Sii9777DualLinkQueryTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777DualLinkQuery when set bDualLink to True and False.
+    Steps:
+        1. setUp: Invoke Sii9777DualLinkManualGet to get initial bDualLink.
+        2. Set bDualLink to True and False, call Sii9777DualLinkManualSet.
+        3. Query the current bDualLink by invoking Sii9777DualLinkQuery.
+           Check point: a) return code of Sii9777DualLinkQuery.
+                        b) bDualLink should be equal to the set.
+        4. tearDown: Invoke Sii9777DualLinkManualSet to set back the value of initial bDualLink.
+    """
+
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkQuery(self):
+        for bDualLink in (True, False):
+            #set Dual-link enable and disable
+            expect_is_bDualLink = bool_t(bDualLink)
+            with self.device.lock:
+                Sii9777DualLinkManualSet(self.device.drv_instance, byref(expect_is_bDualLink))
+
+            actual_is_bDualLink = bool_t()
+            with self.device.lock:
+                retcode = Sii9777DualLinkQuery(self.device.drv_instance, byref(actual_is_bDualLink))
+            self._test_api_retcode("Sii9777DualLinkQuery", retcode)
+            self.assertEquals(actual_is_bDualLink.value, expect_is_bDualLink.value,
+                              msg="pbOn should in %s" % expect_is_bDualLink.value)
+
+            #tearDown
+            with self.device.lock:
+                Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+
+@skip("Manual Test")
+class Sii9777DualLinkModeSetLeftRightTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777DualLinkModeSet and Sii9777DualLinkModeGet when set bDualLink to True and pDualLinkMode
+              to SII9777_DUAL_LINK_MODE__LEFT_RIGHT.
+    Steps:
+        1. setUp: a) Invoke Sii9777DualLinkManualGet to get initial bDualLink.
+                  b) Invoke Sii9777DualLinkModeGet to get initial pDualLinkMode.
+        2. a) Set bDualLink to True, call Sii9777DualLinkManualSet.
+           b) Set pDualLinkMode to SII9777_DUAL_LINK_MODE__LEFT_RIGHT, call Sii9777DualLinkModeSet.
+           Check point: return code of Sii9777DualLinkModeSet.
+        3. Get the current pDualLinkMode by invoking Sii9777DualLinkModeGet.
+           Check point: a) return code of Sii9777DualLinkModeGet.
+                        b) pDualLinkMode should be equal to SII9777_DUAL_LINK_MODE__LEFT_RIGHT.
+        4. tearDown: a) Invoke Sii9777DualLinkModeSet to set back the value of initial pDualLinkMode.
+                     b) Invoke Sii9777DualLinkManualSet to set back the value of initial bDualLink.
+    """
+
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+        self.__pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            Sii9777DualLinkModeGet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkModeSet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkModeSetLeftRight(self):
+        #enable Dual-link
+        bDualLink = bool_t(True)
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(bDualLink))
+
+        expect_pDualLinkMode = Sii9777DualLinkMode_t(SII9777_DUAL_LINK_MODE__LEFT_RIGHT)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkModeSet(self.device.drv_instance, byref(expect_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeSet", retcode_set)
+
+        actual_pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkModeGet(self.device.drv_instance, byref(actual_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeGet", retcode_get)
+        self.assertEquals(actual_pDualLinkMode.value, SII9777_DUAL_LINK_MODE__LEFT_RIGHT,
+                          msg="The expect pDualLinkMode should be %d" % SII9777_DUAL_LINK_MODE__LEFT_RIGHT)
+
+
+@skip("Manual Test")
+class Sii9777DualLinkModeSetEvenOddTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777DualLinkModeSet and Sii9777DualLinkModeGet when set bDualLink to True and pDualLinkMode
+              to SII9777_DUAL_LINK_MODE__EVEN_ODD.
+    Steps:
+        1. setUp: a) Invoke Sii9777DualLinkManualGet to get initial bDualLink.
+                  b) Invoke Sii9777DualLinkModeGet to get initial pDualLinkMode.
+        2. a) Set bDualLink to True, call Sii9777DualLinkManualSet.
+           b) Set pDualLinkMode to SII9777_DUAL_LINK_MODE__EVEN_ODD, call Sii9777DualLinkModeSet.
+           Check point: return code of Sii9777DualLinkModeSet.
+        3. Get the current pDualLinkMode by invoking Sii9777DualLinkModeGet.
+           Check point: a) return code of Sii9777DualLinkModeGet.
+                        b) pDualLinkMode should be equal to SII9777_DUAL_LINK_MODE__EVEN_ODD.
+        4. tearDown: a) Invoke Sii9777DualLinkModeSet to set back the value of initial pDualLinkMode.
+                     b) Invoke Sii9777DualLinkManualSet to set back the value of initial bDualLink.
+    """
+
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+        self.__pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            Sii9777DualLinkModeGet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkModeSet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkModeSetEvenOdd(self):
+        #enable Dual-link
+        bDualLink = bool_t(True)
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(bDualLink))
+
+        expect_pDualLinkMode = Sii9777DualLinkMode_t(SII9777_DUAL_LINK_MODE__EVEN_ODD)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkModeSet(self.device.drv_instance, byref(expect_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeSet", retcode_set)
+
+        actual_pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkModeGet(self.device.drv_instance, byref(actual_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeGet", retcode_get)
+        self.assertEquals(actual_pDualLinkMode.value, SII9777_DUAL_LINK_MODE__EVEN_ODD,
+                          msg="The expect pDualLinkMode should be %d" % SII9777_DUAL_LINK_MODE__EVEN_ODD)
+
+
+@skip("Manual Test")
+class Sii9777DualLinkModeSetPixelReorderTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777DualLinkModeSet and Sii9777DualLinkModeGet when set bDualLink to True and pDualLinkMode
+              to SII9777_DUAL_LINK_MODE__PIXEL_REORDER.
+    Steps:
+        1. setUp: a) Invoke Sii9777DualLinkManualGet to get initial bDualLink.
+                  b) Invoke Sii9777DualLinkModeGet to get initial pDualLinkMode.
+        2. a) Set bDualLink to True, call Sii9777DualLinkManualSet.
+           b) Set pDualLinkMode to SII9777_DUAL_LINK_MODE__PIXEL_REORDER, call Sii9777DualLinkModeSet.
+           Check point: return code of Sii9777DualLinkModeSet.
+        3. Get the current pDualLinkMode by invoking Sii9777DualLinkModeGet.
+           Check point: a) return code of Sii9777DualLinkModeGet.
+                        b) pDualLinkMode should be equal to SII9777_DUAL_LINK_MODE__PIXEL_REORDER.
+        4. tearDown: a) Invoke Sii9777DualLinkModeSet to set back the value of initial pDualLinkMode.
+                     b) Invoke Sii9777DualLinkManualSet to set back the value of initial bDualLink.
+    """
+
+    def setUp(self):
+        self.__is_bDualLink = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkManualGet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+        self.__pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            Sii9777DualLinkModeGet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkModeSet(self.device.drv_instance, byref(self.__pDualLinkMode))
+
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(self.__is_bDualLink))
+
+    def test_Sii9777DualLinkModeSetPixelReorder(self):
+        #enable Dual-link
+        bDualLink = bool_t(True)
+        with self.device.lock:
+            Sii9777DualLinkManualSet(self.device.drv_instance, byref(bDualLink))
+
+        expect_pDualLinkMode = Sii9777DualLinkMode_t(SII9777_DUAL_LINK_MODE__PIXEL_REORDER)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkModeSet(self.device.drv_instance, byref(expect_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeSet", retcode_set)
+
+        actual_pDualLinkMode = Sii9777DualLinkMode_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkModeGet(self.device.drv_instance, byref(actual_pDualLinkMode))
+        self._test_api_retcode("Sii9777DualLinkModeGet", retcode_get)
+        self.assertEquals(actual_pDualLinkMode.value, SII9777_DUAL_LINK_MODE__PIXEL_REORDER,
+                          msg="The expect pDualLinkMode should be %d" % SII9777_DUAL_LINK_MODE__PIXEL_REORDER)
+
+
+#TODO: Sii9777DualLinkSwapEnableGet and Sii9777DualLinkSwapEnableSet return 255?
+@skip("Manual Test")
+class Sii9777DualLinkSwapEnableSetOnTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777DualLinkSwapEnableSet and Sii9777DualLinkSwapEnableGet when set pbOn to True.
+    Steps:
+        1. setUp: Invoke Sii9777DualLinkSwapEnableGet to get initial pbOn.
+        2. Set pbOn to True, call Sii9777DualLinkSwapEnableSet.
+           Check point: return code of Sii9777DualLinkSwapEnableSet.
+        3. Get the current pbOn by invoking Sii9777DualLinkSwapEnableGet.
+           Check point: a) return code of Sii9777DualLinkSwapEnableGet.
+                        b) pbOn should be True.
+        4. tearDown: Invoke Sii9777DualLinkSwapEnableSet to set back the value of initial pbOn.
+    """
+
+    def setUp(self):
+        self.__is_pbOn = bool_t()
+        with self.device.lock:
+            ret = Sii9777DualLinkSwapEnableGet(self.device.drv_instance, self.__is_pbOn)
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkSwapEnableSet(self.device.drv_instance, self.__is_pbOn)
+
+    def test_Sii9777DualLinkSwapEnableSet_ON(self):
+        expect_is_pbOn = bool_t(True)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkSwapEnableSet(self.device.drv_instance, expect_is_pbOn)
+        self._test_api_retcode("Sii9777DualLinkSwapEnableSet", retcode_set)
+
+        actual_is_pbOn = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkSwapEnableGet(self.device.drv_instance, actual_is_pbOn)
+        self._test_api_retcode("Sii9777DualLinkSwapEnableGet", retcode_get)
+        self.assertTrue(actual_is_pbOn.value, "pbOn should be True")
+
+
+#TODO: Sii9777DualLinkSwapEnableGet and Sii9777DualLinkSwapEnableSet return 255?
+@skip("Manual Test")
+class Sii9777DualLinkSwapEnableSetOffTestCase(BaseBostonDriverTestCase):
+    """
+    Test API: Sii9777DualLinkSwapEnableSet and Sii9777DualLinkSwapEnableGet when set pbOn to False.
+    Steps:
+        1. setUp: Invoke Sii9777DualLinkSwapEnableGet to get initial pbOn.
+        2. Set pbOn to False, call Sii9777DualLinkSwapEnableSet.
+           Check point: return code of Sii9777DualLinkSwapEnableSet.
+        3. Get the current pbOn by invoking Sii9777DualLinkSwapEnableGet.
+           Check point: a) return code of Sii9777DualLinkSwapEnableGet.
+                        b) pbOn should be False.
+        4. tearDown: Invoke Sii9777DualLinkSwapEnableSet to set back the value of initial pbOn.
+    """
+
+    def setUp(self):
+        self.__is_pbOn = bool_t()
+        with self.device.lock:
+            Sii9777DualLinkSwapEnableGet(self.device.drv_instance, self.__is_pbOn)
+
+    def tearDown(self):
+        with self.device.lock:
+            Sii9777DualLinkSwapEnableSet(self.device.drv_instance, self.__is_pbOn)
+
+    def test_Sii9777DualLinkSwapEnableSet_OFF(self):
+        expect_is_pbOn = bool_t(False)
+        with self.device.lock:
+            retcode_set = Sii9777DualLinkSwapEnableSet(self.device.drv_instance, expect_is_pbOn)
+        self._test_api_retcode("Sii9777DualLinkSwapEnableSet", retcode_set)
+
+        actual_is_pbOn = bool_t()
+        with self.device.lock:
+            retcode_get = Sii9777DualLinkSwapEnableGet(self.device.drv_instance, actual_is_pbOn)
+        self._test_api_retcode("Sii9777DualLinkSwapEnableGet", retcode_get)
+        self.assertFalse(actual_is_pbOn.value, "pbOn should be False")

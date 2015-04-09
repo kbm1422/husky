@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+<TestSuite name="Boston Driver RX MHL3 Test Suite">
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.CbusModeQueryTestCase" method="test_Sii9777CbusModeQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="expect_cbus_mode" value="SII9777_CBUS_MODE__ECBUS_S"/>
+    </TestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.MHLVersionQueryTestCase" method="test_Sii9777MHLVersionQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="expect_mhl_version" value="SII9777_MHL_VERSION__MHL3"/>
+    </TestCase>
+
+    <LinkedTestCase class="cases.wired.boston.test_drv_rx_mhl.CbusLocalXDevcapTestCase">
+        <Attribute name="device" value="%(device)s"/>
+        <!--<Attribute name="peer_device" value="%(peer_device)s"/>-->
+    </LinkedTestCase>
+
+    <TestCase class="cases.wired.boston.test_drv_rx_mhl.CbusRemoteXDevcapQueryTestCase" method="test_Sii9777CbusRemoteXDevcapQuery">
+        <Attribute name="device" value="%(device)s"/>
+        <Attribute name="peer_device" value="%(peer_device)s"/>
+    </TestCase>
+</TestSuite>

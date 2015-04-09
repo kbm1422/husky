@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<TestSuite name="cases.wired.boston.test_drv_hdmi_tx">
+	<TestCase class="cases.wired.boston.test_drv_hdmi_tx.AvMuteTestCase" method="test_Sii9777AvMuteSet_OFF">
+		<Attribute name="device" value="%(device)s"/>
+		<Attribute name="tx_port" value="0"/>
+	</TestCase>
+	<TestCase class="cases.wired.boston.test_drv_hdmi_tx.AvMuteTestCase" method="test_Sii9777AvMuteSet_ON">
+		<Attribute name="device" value="%(device)s"/>
+		<Attribute name="tx_port" value="0"/>
+	</TestCase>
+	<TestCase class="cases.wired.boston.test_drv_hdmi_tx.PrimTxPortTestCase" method="test_Sii9777PrimTxPortSet">
+		<Attribute name="device" value="%(device)s"/>
+		<Attribute name="prim_tx_port" value="0"/>
+	</TestCase>
+	<TestCase class="cases.wired.boston.test_drv_hdmi_tx.TmdsEnableSetTestCase" method="test_Sii9777TmdsEnableSet_OFF">
+		<Attribute name="device" value="%(device)s"/>
+		<Attribute name="tx_port" value="0"/>
+	</TestCase>
+	<TestCase class="cases.wired.boston.test_drv_hdmi_tx.TmdsEnableSetTestCase" method="test_Sii9777TmdsEnableSet_ON">
+		<Attribute name="device" value="%(device)s"/>
+		<Attribute name="tx_port" value="0"/>
+	</TestCase>
+	<TestCase class="cases.wired.boston.test_drv_hdmi_tx.TmdsPinSwapTestCase" method="test_Sii9777TmdsPinSwapGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.boston.test_drv_hdmi_tx.TmdsPinSwapTestCase" method="test_Sii9777TmdsPinSwapSet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.boston.test_drv_hdmi_tx.TmdsSwingLevelTestCase" method="test_Sii9777TmdsSwingLevelGet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+	<TestCase class="cases.wired.boston.test_drv_hdmi_tx.TmdsSwingLevelTestCase" method="test_Sii9777TmdsSwingLevelSet">
+		<Attribute name="device" value="%(device)s"/>
+	</TestCase>
+</TestSuite>

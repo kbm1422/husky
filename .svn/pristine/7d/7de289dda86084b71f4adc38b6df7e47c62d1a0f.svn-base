@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+    <configSections>
+        <sectionGroup name="userSettings" type="System.Configuration.UserSettingsGroup, System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" >
+            <section name="TestApplication.Properties.Settings" type="System.Configuration.ClientSettingsSection, System, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" allowExeDefinition="MachineToLocalUser" requirePermission="false" />
+        </sectionGroup>
+    </configSections>
+    <userSettings>
+        <TestApplication.Properties.Settings>
+            <setting name="LastCdfPath" serializeAs="String">
+                <value />
+            </setting>
+            <setting name="ChargeSourceDutAfterTests" serializeAs="String">
+                <value>False</value>
+            </setting>
+            <setting name="testECbusS" serializeAs="String">
+                <value>True</value>
+            </setting>
+            <setting name="testECbusD" serializeAs="String">
+                <value>True</value>
+            </setting>
+            <setting name="testOCbus2" serializeAs="String">
+                <value>True</value>
+            </setting>
+            <setting name="testOCbus3" serializeAs="String">
+                <value>True</value>
+            </setting>
+            <setting name="runAutomatic" serializeAs="String">
+                <value>True</value>
+            </setting>
+            <setting name="runManual" serializeAs="String">
+                <value>True</value>
+            </setting>
+            <setting name="LogCaptures" serializeAs="String">
+                <value>False</value>
+            </setting>
+        </TestApplication.Properties.Settings>
+    </userSettings>
+</configuration>

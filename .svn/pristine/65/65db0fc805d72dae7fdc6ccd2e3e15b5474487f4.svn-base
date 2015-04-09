@@ -1,0 +1,325 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+import logging
+logger = logging.getLogger(__name__)
+
+import sys
+import inspect
+import traceback
+import unittest
+
+from collections import OrderedDict
+from .result import TestResult, TestCaseResultRecord
+from .mark import skipif, parametrize
+
+
+class TestCase(unittest.TestCase):
+    """
+    @summary:
+    All assert methods support an additional param "iswarning".
+    When failureException is occurred and iswarning is True, it will be captured and then be saved as an warningException.
+    It is useful when some check point does not affect the overall test case's result.
+
+    Method self.add_concern used to add concern into an OrderedDict when test is running.
+    You can use this method to collect the data you are pay attention to.
+    """
+
+    warningException = Warning
+    longMessage = True
+
+    def __init__(self, methodName="runTest", caseid=None, testid=None, name=None):
+        super(TestCase, self).__init__(methodName)
+        self.record = TestCaseResultRecord()
+        self.caseid = caseid
+        self.testid = testid
+        self.name = name or self._testMethodName
+        self.record = TestCaseResultRecord()
+        self.record.caseid = self.caseid
+        self.record.testid = self.testid
+        self.record.name = self.name
+        self.record.clsname = "%s.%s" % (self.__module__, self.__class__.__name__)
+
+        # below attribute will be set by TestSuite
+        self.logdir = None
+        self.logname = None
+        self.cycleindex = None
+
+        # below attribute will be set by TestResource
+        self.extlognames = []
+
+        # get all @parametrize which marked on the class and method
+        self._parametrize_marks = self._get_parametrize_marks()
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+        self.record.name = value
+
+    def defaultTestResult(self):
+        return TestResult()
+
+    def add_concern(self, name, value):
+        self.record.concerns[name] = value
+
+    def add_checkpoint(self, name, status):
+        checkpoint = OrderedDict()
+        checkpoint["name"] = name
+        checkpoint["status"] = status
+        self.record.checkpoints.append(checkpoint)
+
+    def _pass(self, msg):
+        self.add_checkpoint(msg, TestCaseResultRecord.Status.PASSED)
+
+    def _fail(self, msg):
+        try:
+            self.fail(msg)
+        finally:
+            #TODO: should not add the msg into checkpoints if in setUp() or tearDown()
+            self.add_checkpoint(msg, TestCaseResultRecord.Status.FAILED)
+
+    def _warn(self, msg):
+        self.warn(msg)
+        self.add_checkpoint(msg, TestCaseResultRecord.Status.WARNING)
+
+    def warn(self, msg=None):
+        try:
+            raise self.warningException(msg)
+        except self.warningException:
+            exc_info = sys.exc_info()
+            warning = (exc_info[0], exc_info[1], self.exc_info_to_string(exc_info))
+            logger.warn(warning[2])
+            self.record.warnings.append(warning)
+
+    def exc_info_to_string(self, exc_info):
+        #FIXME: Now it is depend on the test method startswith "test" or line which is startswith "self.assert"
+        exc_type, exc_value, exc_traceback = exc_info
+        pre_stacktraces = traceback.extract_stack()
+        cur_stacktraces = traceback.extract_tb(exc_traceback)
+        full_stacktraces = pre_stacktraces[:-1] + cur_stacktraces
+
+        stacktraces = []
+        if exc_type in (self.failureException, self.warningException):
+            title = "Traceback (relevant call)"
+            for stacktrace in full_stacktraces:
+                if stacktrace[2].startswith("test") or stacktrace[3].startswith("self.assert"):
+                    stacktraces.append(stacktrace)
+        else:
+            title = "Traceback (most recent call last)"
+            stacktraces = full_stacktraces
+
+        exc_line = traceback.format_exception_only(exc_type, exc_value)
+        return "%s:\n%s%s" % (title, "".join(traceback.format_list(stacktraces)), "".join(exc_line))
+
+    def __getattribute__(self, name):
+        attr = object.__getattribute__(self, name)
+        if name.startswith("assert") and inspect.ismethod(attr):
+            # frame = inspect.currentframe()
+            # print frame.f_back.f_code.co_name #GET function name test_xxxxx of current assert
+            def wrapper(*args, **kwargs):
+                """
+                See <decorator> design pattern for detail: http://www.oodesign.com/decorator-pattern.html
+                """
+                argspec = inspect.getargspec(attr)
+                # argspec[0]: ['self', 'first', 'second', 'msg']
+                # args: (1, 2, 'test equal', True
+                if len(args) == len(argspec[0]):
+                    iswarning = args[-1]
+                    args = args[:-1]
+                else:
+                    iswarning = kwargs.pop("iswarning", False)
+
+                state = None
+                try:
+                    attr(*args, **kwargs)
+                except self.failureException:
+                    exc_info = sys.exc_info()
+                    if iswarning:
+                        state = TestCaseResultRecord.Status.WARNING
+                        trace = self.exc_info_to_string((self.warningException, exc_info[1], exc_info[2]))
+                        logger.warn(trace)
+                        warning = (self.warningException, exc_info[1], trace)
+                        self.record.warnings.append(warning)
+                    else:
+                        state = TestCaseResultRecord.Status.FAILED
+                        raise
+                else:
+                    state = TestCaseResultRecord.Status.PASSED
+                finally:
+                    trace = "".join(traceback.format_stack())
+                    assert_in_setup_or_teardown = True if "self.setUp()" in trace or "self.tearDown()" in trace else False
+
+                    #only add check point when current assert not in setUp or tearDown
+                    if not assert_in_setup_or_teardown:
+                        try:
+                            params = inspect.getcallargs(attr, *args, **kwargs)
+                        except AttributeError as err:
+                            #handle jython error
+                            logger.error("%s, can't collect the checkpoint from param 'msg'", str(err))
+                        else:
+                            msg = params["msg"] if "msg" in params else None
+                            logger.info("Checkpoint: %s %s", msg, TestCaseResultRecord.STATUS_MAPPER[state])
+                            self.add_checkpoint(msg, state)
+            return wrapper
+        else:
+            return attr
+
+    def run(self, result=None):
+        """
+        In unittest.TestCase.run, it will call result.startTest before doing test.
+        But now, we must handle the decorators @skipif and @parametrize before calling super(TestCase, self).run(result)
+        When handle @skipif and @parametrize, we also need to capture the exception and save it to result.
+        And we need to make sure result.startTest(self) and result.stopTest(self) are called.
+        So we put result.startTest(self) and result.stopTest(self)in except block.
+        """
+        orig_result = result
+        if result is None:
+            result = self.defaultTestResult()
+            result.startTestRun()
+
+        try:
+            self.eval_parametrize_attrs()
+
+            if hasattr(self.__class__, skipif.name):
+                skipif_mark = getattr(self.__class__, skipif.name)
+                if self._eval_skipif_condition(skipif_mark):
+                    # or use self._addSkip directly
+                    unittest.skip(skipif_mark.reason)(self.__class__)
+
+            method = getattr(self, self._testMethodName)
+            if hasattr(method, skipif.name):
+                skipif_mark = getattr(method, skipif.name)
+                if self._eval_skipif_condition(skipif_mark):
+                    # or use self._addSkip directly
+                    setattr(self, self._testMethodName, unittest.skip(skipif_mark.reason)(method))
+        except (SyntaxError, AttributeError, ValueError):
+            result.addError(self, sys.exc_info())
+            result.startTest(self)
+            result.stopTest(self)
+        else:
+            super(TestCase, self).run(result)
+        finally:
+            if orig_result is None:
+                result.stopTestRun()
+
+    def _eval_skipif_condition(self, mark):
+        return (inspect.isfunction(mark.condition) and mark.condition()) or \
+               (isinstance(mark.condition, bool) and mark.condition) or \
+               (isinstance(mark.condition, str) and eval(mark.condition))
+
+    def _get_parametrize_marks(self):
+        marks = OrderedDict()
+        marks.update(self.__class__.get_class_parametrize_marks())
+        marks.update(self.__class__.get_method_parametrize_marks(self._testMethodName))
+        return marks
+
+    @classmethod
+    def get_class_parametrize_marks(cls):
+        marks = OrderedDict()
+        if hasattr(cls, parametrize.name):
+            marks.update(getattr(cls, parametrize.name))
+        return marks
+
+    @classmethod
+    def get_method_parametrize_marks(cls, method_name):
+        marks = OrderedDict()
+        method = getattr(cls, method_name)
+        if hasattr(method, parametrize.name):
+            marks.update(getattr(method, parametrize.name))
+        return marks
+
+    def eval_parametrize_attrs(self, fetch=None):
+        for mark in self._parametrize_marks.values():
+            if not hasattr(self, mark.attrname):
+                if mark.default is not None:
+                    setattr(self, mark.attrname, mark.default)
+                else:
+                    raise AttributeError("The attribute '%s' is required for %s" % (mark.attrname, self))
+            if fetch is None or fetch == mark.context.type:
+                self._cast_parametrize_attrs(mark)
+
+    def _cast_parametrize_attrs(self, mark):
+        import types
+        from simg.util import sstring
+
+        attr_value = getattr(self, mark.attrname)
+        if not isinstance(attr_value, mark.type):
+            if mark.type is types.BooleanType:
+                setattr(self, mark.attrname, sstring.get_boolean(attr_value))
+            elif mark.type is types.FloatType:
+                setattr(self, mark.attrname, mark.type(attr_value))
+            else:
+                new_attr_value = eval(attr_value, mark.context.globals, mark.context.locals)
+                logger.debug("eval('%s') result is: %s", attr_value, new_attr_value)
+                if not isinstance(new_attr_value, mark.type):
+                    raise ValueError("eval('%s') result type does not match with %s" % (attr_value, mark.type))
+                elif mark.choice and new_attr_value not in mark.choice:
+                    raise ValueError("eval('%s') result not in choice: %s" % (attr_value, mark.choice))
+                else:
+                    setattr(self, mark.attrname, new_attr_value)
+
+
+class LinkedTestCase(TestCase):
+    """
+    @summary:
+    LinkedTestCase means there are several test methods will be run in this case.
+    Each failed 'assert' will cause the whole case failed, the following test methods in this case will not be executed.
+    This is useful when the later test method depends on the previous test method's result
+    """
+    methodNames = ()
+
+    def __init__(self, methodNames=(), *args, **kwargs):
+        self.linked_method_names = methodNames or self.methodNames
+        if not isinstance(self.linked_method_names, (list, tuple)):
+            raise TypeError
+
+        if not self.linked_method_names:
+            raise
+        super(LinkedTestCase, self).__init__("runLinkedTests", *args, **kwargs)
+        if self.name == "runLinkedTests":
+            self.name = self.__class__.__name__
+
+    def _get_parametrize_marks(self):
+        marks = super(LinkedTestCase, self)._get_parametrize_marks()
+        for method_name in self.linked_method_names:
+            marks.update(self.__class__.get_method_parametrize_marks(method_name))
+        return marks
+
+    def __eq__(self, other):
+        if type(self) is not type(other):
+            return NotImplemented
+        return self.linked_method_names == other.linked_method_names
+
+    def __hash__(self):
+        return hash((type(self), self.linked_method_names))
+
+    def runLinkedTests(self):
+        for methodName in self.linked_method_names:
+            methodFunc = getattr(self, methodName)
+            methodFunc()
+
+
+def isTestCase(test):
+    return isinstance(test, TestCase) or issubclass(test.__class__, TestCase)
+
+
+def isLinkedTestCase(test):
+    return isinstance(test, LinkedTestCase) or issubclass(test.__class__, LinkedTestCase)
+
+
+def isTestCaseSubClass(cls):
+    if inspect.isclass(cls) and issubclass(cls, unittest.TestCase) and cls != TestCase and cls != LinkedTestCase:
+        return True
+    else:
+        return False
+
+
+if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)-15s [%(levelname)-8s] - %(message)s'
+    )
